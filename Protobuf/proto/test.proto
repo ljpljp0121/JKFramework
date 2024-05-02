@@ -1,0 +1,59 @@
+syntax = "proto3";//第一行为版本号
+
+//注释方式 2
+/*注释方式二*/
+
+//命名空间 3
+package GamePlayerTest;
+
+//消息类 4
+message TestMsg{
+    //成员类型 和 唯一编号 5
+
+    //浮点数 等号后面代表变量的唯一编号
+    //float testF = 1;
+    optional double testD = 3;//可以不赋值
+    //变长编码
+    //所谓变长就是会根据数字大小 来使用对应的字节数存储
+    //protobuf帮助我们优化的部分 可尽量使用少的字节数 来存储
+    int32 testInt = 4;//C# - int 不太适用于表示负数 使用sint32
+    //1 2 4 8
+    int64 testLong = 5;//C# - long 不太适用于表示负数 使用sint64
+    //更适用于表示负数类型整数
+    sint32 testS32 =6;//C# - int 适用于表示负数
+    sint64 testS364 =7;//C# - long 适用于表示负数
+    //无符号变长编码
+    uint32 testU32 = 8;//C# - uint 变长的编码
+    uint64 testU64 = 9;//C# - ulong 变长的编码
+    //固定字节数的类型
+    //通常用来表示大于2的28次方的数 比uint32更有效 始终是4个字节
+    fixed32 testFixed32 =10;//C# - uint
+    //通常用来表示大于2的56次方的数 比uint64更有效 始终是8个字节
+    fixed64 testFixed64 =11;//C# - ulong 
+
+    sfixed32 testsfixed32 = 12;//C# - int 始终是4个字节
+    sfixed64 testsfixed64 = 13;//C# - long 始终是8个字节
+    //其他类型
+    bool testBool = 14;//C# - bool
+    string testString =15;//C# - string
+    //新的类型 protobuf自己实现的类型
+    bytes testBytes = 16;//C# - BytesString 字节字符串
+
+    //数组List
+    repeated int32 listInt = 17;//C# - 类似List<int>使用
+    //字典 Dictionary
+    map<int32,string> testMap = 18;//C# - 类似Dictionary<int,string>的使用
+    //枚举成员变量的声明 需要唯一标识
+    TestEnum testEnum = 19;
+
+    //int32 testInt32222 = 20;
+    //bool testBool2321 =20;
+    //告诉编译器20被占用 不准用户使用
+    reserved 20;
+}
+
+//枚举的声明
+enum TestEnum{
+    NORMAL = 0;//第一个常量必须映射到0
+    BOSS = 5;
+}
