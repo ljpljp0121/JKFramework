@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PlayerInfo>
+	<!--自己定一个xml代表 类对象数据的规则
+	我们的元素节点名 就用我们的变量名命名
+	-->
+	<name>唐老狮</name>
+	<atk>10</atk>
+	<def>5</def>
+	<moveSpeed>20</moveSpeed>
+	<roundSpeed>20</roundSpeed>
+	<weapon>
+		<id>1</id>
+		<num>1</num>
+	</weapon>
+	<!--当出现没有变量名的数据时 我们就用变量类型名命名-->
+	<listInt>
+		<int>1</int>
+		<int>2</int>
+		<int>3</int>
+	</listInt>
+	<itemList>
+		<Item id="1" num="10"/>
+		<Item id="2" num="20"/>
+		<Item id="3" num="30"/>
+		<Item id="4" num="40"/>
+	</itemList>
+	<itemDic>
+		<int>1</int>
+		<Item id="1" num="1"/>
+		<int>2</int>
+		<Item id="2" num="1"/>
+		<int>3</int>
+		<Item id="3" num="1"/>
+		<!-- 另一种写法 但是建议大家都统一
+		<int>4</int>
+		<Item>
+			<id>4</id>
+			<num>1</num>
+		</Item>
+		-->
+	</itemDic>
+</PlayerInfo>
