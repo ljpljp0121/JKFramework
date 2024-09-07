@@ -1,9 +1,11 @@
 using AssetBundleFramework.Core;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.RefAndLookup;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,6 +16,7 @@ namespace AssetBundleFramework.Editor
         public static readonly Vector2 collectRuleFileProgress = new Vector2(0, 0.2f);
         public static readonly Vector2 getDependencyProgress = new Vector2(0.2f, 0.4f);
         public static readonly Vector2 collectBundleInfoProgress = new Vector2(0.4f, 0.5f);
+        public static readonly Vector2 generateBundleInfoProgress = new Vector2(0.5f, 0.6f);
 
         private static readonly Profiler ms_BuildProfiler = new Profiler(nameof(Builder));
         private static readonly Profiler ms_LoadBuildSettingProfiler = ms_BuildProfiler.CreateChild(nameof(LoadSetting));
@@ -22,6 +25,7 @@ namespace AssetBundleFramework.Editor
         private static readonly Profiler ms_CollectBuildSettingFileProfiler = ms_CollectProfiler.CreateChild("CollectBuildSettingFile");
         private static readonly Profiler ms_CollectDependencyProfiler = ms_CollectProfiler.CreateChild(nameof(CollectDependency));
         private static readonly Profiler ms_CollectBundleProfiler = ms_CollectProfiler.CreateChild(nameof(CollectBundle));
+        private static readonly Profiler ms_GenerateManifestProfiler = ms_CollectProfiler.CreateChild(nameof(GenerateManifest));
 
 #if UNITY_IOS
     private const string PLATFORM = "IOS";
@@ -40,6 +44,41 @@ namespace AssetBundleFramework.Editor
         /// 打包目录
         /// </summary>
         public static string buildPath { get; set; }
+
+        /// <summary>
+        /// 临时目录,临时生成的文件都统一放在该目录
+        /// </summary>
+        public readonly static string TempPath = Path.GetFullPath(Path.Combine(Application.dataPath, "Temp")).Replace("\\", "/");
+
+        /// <summary>
+        /// 资源描述__文本
+        /// </summary>
+        public readonly static string ResourcePath_Text = $"{TempPath}/Resource.txt";
+
+        /// <summary>
+        /// 资源描述__二进制
+        /// </summary>
+        public readonly static string ResourcePath_Binary = $"{TempPath}/Resource.bytes";
+
+        /// <summary>
+        /// Bundle描述__文本
+        /// </summary>
+        public readonly static string BundlePath_Text = $"{TempPath}/Bundle.txt";
+
+        /// <summary>
+        /// Bundle描述__二进制
+        /// </summary>
+        public readonly static string BundlePath_Binary = $"{TempPath}/Bundle.bytes";
+
+        /// <summary>
+        /// 资源依赖描述__文本
+        /// </summary>
+        public readonly static string DependencyPath_Text = $"{TempPath}/Dependency.txt";
+
+        /// <summary>
+        /// 资源依赖描述__二进制
+        /// </summary>
+        public readonly static string DependencyPath_Binary = $"{TempPath}/Dependency.bytes";
 
         /// <summary>
         /// 打包配置
@@ -150,6 +189,13 @@ namespace AssetBundleFramework.Editor
             ms_CollectBundleProfiler.Start();
             Dictionary<string, List<string>> bundleDic = CollectBundle(buildSetting, assetDic, dependencyDic);
             ms_CollectBundleProfiler.Stop();
+
+            //生成Manifest文件
+            ms_GenerateManifestProfiler.Start();
+            GenerateManifest(assetDic, bundleDic, dependencyDic);
+            ms_GenerateManifestProfiler.Stop();
+
+            return bundleDic;
         }
 
         /// <summary>
@@ -260,6 +306,211 @@ namespace AssetBundleFramework.Editor
             }
             return bundleDic;
         }
+
+        /// <summary>
+        /// 生成资源描述文件
+        /// </summary>
+        /// <param name="assetDic"></param>
+        /// <param name="bundleDic"></param>
+        /// <param name="dependencyDic"></param>
+        private static void GenerateManifest(Dictionary<string, EResourceType> assetDic,
+            Dictionary<string, List<string>> bundleDic, Dictionary<string, List<string>> dependencyDic)
+        {
+            float min = generateBundleInfoProgress.x;
+            float max = generateBundleInfoProgress.y;
+
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "生成打包信息", min);
+
+            //生成临时存放文件的目录
+            if (Directory.Exists(TempPath))
+            {
+                Directory.CreateDirectory(TempPath);
+            }
+
+            //资源映射id
+            Dictionary<string, ushort> assetIdDic = new Dictionary<string, ushort>();
+
+            #region 生成资源描述信息
+            {
+                //删除资源描述文本文件
+                if (File.Exists(ResourcePath_Text))
+                {
+                    File.Delete(ResourcePath_Text);
+                }
+
+                //删除资源描述二进制文件
+                if (File.Exists(ResourcePath_Binary))
+                {
+                    File.Delete(ResourcePath_Binary);
+                }
+
+                //写入资源列表
+                StringBuilder resourceSb = new StringBuilder();
+                MemoryStream resourceMs = new MemoryStream();
+                BinaryWriter resourceBw = new BinaryWriter(resourceMs);
+                if (assetDic.Count > ushort.MaxValue)
+                {
+                    EditorUtility.ClearProgressBar();
+                    throw new Exception($"资源个数超出{ushort.MaxValue}");
+                }
+
+                //写入个数
+                resourceBw.Write((ushort)assetDic.Count);
+                List<string> keys = new List<string>(assetDic.Keys);
+                keys.Sort();
+                for (ushort i = 0; i < keys.Count; i++)
+                {
+                    string assetUrl = keys[i];
+                    assetIdDic.Add(assetUrl, i);
+                    resourceSb.AppendLine($"{i}\t{assetUrl}");
+                    resourceBw.Write(assetUrl);
+                }
+                resourceMs.Flush();
+                byte[] buffer = resourceMs.GetBuffer();
+                resourceBw.Close();
+                //写入资源描述文本文件
+                File.WriteAllText(ResourcePath_Text, resourceSb.ToString(), Encoding.UTF8);
+                File.WriteAllBytes(ResourcePath_Binary, buffer);
+            }
+            #endregion
+
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "生成打包信息", min + (max - min) * 0.3f);
+
+            #region 生成bundle描述信息
+            {
+                //删除bundle描述文本文件
+                if (File.Exists(BundlePath_Text))
+                {
+                    File.Delete(BundlePath_Text);
+                }
+
+                //删除bundle描述二进制文件
+                if (File.Exists(BundlePath_Binary))
+                {
+                    File.Delete(BundlePath_Binary);
+                }
+
+                //写入Bundle信息
+                StringBuilder bundleSb = new StringBuilder();
+                MemoryStream bundleMs = new MemoryStream();
+                BinaryWriter bundleBw = new BinaryWriter(bundleMs);
+
+                //写入bundle个数
+                bundleBw.Write((ushort)assetDic.Count);
+                foreach (KeyValuePair<string, List<string>> kv in bundleDic)
+                {
+                    string bundleName = kv.Key;
+                    List<string> assets = kv.Value;
+
+                    //写入bundle
+                    bundleSb.AppendLine(bundleName);
+                    bundleBw.Write(bundleName);
+
+                    //写入资源个数
+                    bundleBw.Write((ushort)assets.Count);
+
+                    for (int i = 0; i < assets.Count; i++)
+                    {
+                        string assetUrl = assets[i];
+                        ushort assetID = assetIdDic[assetUrl];
+                        bundleSb.AppendLine($"\t{assetUrl}");
+                        bundleBw.Write(assetID);
+                    }
+                }
+                bundleMs.Flush();
+                byte[] buffer = bundleMs.GetBuffer();
+                bundleBw.Close();
+
+                //写入资源描述文本文件
+                File.WriteAllText(BundlePath_Text, bundleSb.ToString(), Encoding.UTF8);
+                File.WriteAllBytes(BundlePath_Binary, buffer);
+            }
+            #endregion
+
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "生成打包信息", min + (max - min) * 0.8f);
+
+            #region 生成资源依赖描述信息
+            {
+                //删除资源依赖描述文本文件
+                if (File.Exists(DependencyPath_Text))
+                {
+                    File.Delete(DependencyPath_Text);
+                }
+
+                //删除资源依赖描述二进制文件
+                if (File.Exists(DependencyPath_Binary))
+                {
+                    File.Delete(DependencyPath_Binary);
+                }
+
+                //写入资源依赖信息
+                StringBuilder dependencySb = new StringBuilder();
+                MemoryStream dependencyMs = new MemoryStream();
+                BinaryWriter dependencyBw = new BinaryWriter(dependencyMs);
+
+                //用于保存资源依赖链
+                List<List<ushort>> dependencyList = new List<List<ushort>>();
+                foreach (var kv in dependencyDic)
+                {
+                    List<string> dependencyAssets = kv.Value;
+
+                    if (dependencyAssets.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    string assetUrl = kv.Key;
+
+                    List<ushort> ids = new List<ushort>();
+                    ids.Add(assetIdDic[assetUrl]);
+
+                    string content = assetUrl;
+                    for (int i = 0; i < dependencyAssets.Count; i++)
+                    {
+                        string dependencyAssetUrl = dependencyAssets[i];
+                        content += $"\t{dependencyAssetUrl}";
+                        ids.Add(assetIdDic[dependencyAssetUrl]);
+                    }
+
+                    dependencySb.AppendLine(content);
+
+                    if (ids.Count > byte.MaxValue)
+                    {
+                        EditorUtility.ClearProgressBar();
+                        throw new Exception($"资源{assetUrl}的依赖个数超出了一个字节的上限：{byte.MaxValue}");
+                    }
+
+                    dependencyList.Add(ids);
+
+                }
+
+                //写入依赖链个数
+                dependencyBw.Write((ushort)dependencyList.Count);
+                for (int i = 0; i < dependencyList.Count; i++)
+                {
+                    //写入资源数
+                    List<ushort> ids = dependencyList[i];
+                    dependencyBw.Write((ushort)ids.Count);
+                    for (int j = 0; j < ids.Count; j++)
+                    {
+                        dependencyBw.Write(ids[j]);
+                    }
+                }
+                dependencyMs.Flush();
+                byte[] buffer = dependencyMs.GetBuffer();
+                dependencyBw.Close();
+                //写入依赖描述文本文件
+                File.WriteAllText(DependencyPath_Text, dependencySb.ToString(), Encoding.UTF8);
+                File.WriteAllBytes(DependencyPath_Binary, buffer);
+            }
+            #endregion
+
+            AssetDatabase.Refresh();
+
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "生成打包信息", max);
+            EditorUtility.ClearProgressBar();
+        }
+
 
         /// <summary>
         /// 获取指定路径的文件
