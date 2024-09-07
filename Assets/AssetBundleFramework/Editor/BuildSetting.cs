@@ -140,8 +140,28 @@ namespace AssetBundleFramework.Editor
         /// <returns></returns>
         public bool IsIgnore(List<string> ignoreList, string file)
         {
-            //TODO
+            for (int i = 0; i < ignoreList.Count; i++)
+            {
+                string ignorePath = ignoreList[i];
+                if (string.IsNullOrEmpty(ignorePath)) continue;
+                if (file.StartsWith(ignorePath, StringComparison.InvariantCulture))
+                {
+                    return true;
+                }
+            }
             return false;
+        }
+
+        /// <summary>
+        /// ªÒ»°BundleName
+        /// </summary>
+        /// <param name="assetUrl"></param>
+        /// <param name="resourceType"></param>
+        /// <returns></returns>
+        public string GetBundleName(string assetUrl, EResourceType resourceType)
+        {
+            //TODO
+            return "";
         }
     }
 
