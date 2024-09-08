@@ -26,7 +26,6 @@ public class ProtobufTool
         Generate("csharp_out",CSHARP_PATH);
     }
 
-
     [MenuItem("ProtobufTool/Éú³ÉC++´úÂë")]
     private static void GenerateCPP()
     {
