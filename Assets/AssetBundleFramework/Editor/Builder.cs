@@ -269,7 +269,7 @@ namespace AssetBundleFramework.Editor
             {
                 index++;
                 string assetUrl = pair.Key;
-                string bundleName = buildSetting.GetBundleName(assetUrl);
+                string bundleName = buildSetting.GetBundleName(assetUrl, pair.Value);
 
                 //没有bundleName的资源为外部资源
                 if (bundleName == null)
