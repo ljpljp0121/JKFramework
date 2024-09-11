@@ -1,36 +1,34 @@
-using System.Collections;
-using System.Collections.Generic;
+锘縰sing System.Collections.Generic;
 using System.ComponentModel;
 using System.Xml.Serialization;
-using UnityEngine;
 
-namespace AssetBundleFramework.Editor
+namespace AssetBundleFramework
 {
     public class BuildItem
     {
-        [DisplayName("资源路径")]
+        [DisplayName("璧勬簮璺緞")]
         [XmlAttribute("AssetPath")]
         public string assetPath { get; set; }
 
-        [DisplayName("资源类型")]
+        [DisplayName("璧勬簮绫诲瀷")]
         [XmlAttribute("ResourceType")]
         public EResourceType resourceType { get; set; } = EResourceType.Direct;
 
-        [DisplayName("ab粒度类型")]
+        [DisplayName("ab绮掑害绫诲瀷")]
         [XmlAttribute("BundleType")]
         public EBundleType bundleType { get; set; } = EBundleType.File;
 
-        [DisplayName("资源后缀")]
+        [DisplayName("璧勬簮鍚庣紑")]
         [XmlAttribute("Suffix")]
         public string suffix { get; set; } = ".prefab";
 
         [XmlIgnore]
-        public List<string> ignorPaths { get; set; } = new List<string>();
+        public List<string> ignorePaths { get; set; } = new List<string>();
 
         [XmlIgnore]
         public List<string> suffixes { get; set; } = new List<string>();
 
-        //匹配该打包设置的个数
+        //鍖归厤璇ユ墦鍖呰缃殑涓暟
         [XmlIgnore]
         public int Count { get; set; }
     }

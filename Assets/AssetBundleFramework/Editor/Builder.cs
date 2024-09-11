@@ -1,22 +1,23 @@
-using AssetBundleFramework.Core;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.RefAndLookup;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
+ï»¿using UnityEditor;
 using System.IO;
-using System.Text;
-using UnityEditor;
+using System.ComponentModel;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace AssetBundleFramework.Editor
+namespace AssetBundleFramework
 {
     public static class Builder
     {
         public static readonly Vector2 collectRuleFileProgress = new Vector2(0, 0.2f);
-        public static readonly Vector2 getDependencyProgress = new Vector2(0.2f, 0.4f);
-        public static readonly Vector2 collectBundleInfoProgress = new Vector2(0.4f, 0.5f);
-        public static readonly Vector2 generateBundleInfoProgress = new Vector2(0.5f, 0.6f);
+        private static readonly Vector2 ms_GetDependencyProgress = new Vector2(0.2f, 0.4f);
+        private static readonly Vector2 ms_CollectBundleInfoProgress = new Vector2(0.4f, 0.5f);
+        private static readonly Vector2 ms_GenerateBuildInfoProgress = new Vector2(0.5f, 0.6f);
+        private static readonly Vector2 ms_BuildBundleProgress = new Vector2(0.6f, 0.7f);
+        private static readonly Vector2 ms_ClearBundleProgress = new Vector2(0.7f, 0.9f);
+        private static readonly Vector2 ms_BuildManifestProgress = new Vector2(0.9f, 1f);
 
         private static readonly Profiler ms_BuildProfiler = new Profiler(nameof(Builder));
         private static readonly Profiler ms_LoadBuildSettingProfiler = ms_BuildProfiler.CreateChild(nameof(LoadSetting));
@@ -26,96 +27,143 @@ namespace AssetBundleFramework.Editor
         private static readonly Profiler ms_CollectDependencyProfiler = ms_CollectProfiler.CreateChild(nameof(CollectDependency));
         private static readonly Profiler ms_CollectBundleProfiler = ms_CollectProfiler.CreateChild(nameof(CollectBundle));
         private static readonly Profiler ms_GenerateManifestProfiler = ms_CollectProfiler.CreateChild(nameof(GenerateManifest));
+        private static readonly Profiler ms_BuildBundleProfiler = ms_BuildProfiler.CreateChild(nameof(BuildBundle));
+        private static readonly Profiler ms_ClearBundleProfiler = ms_BuildProfiler.CreateChild(nameof(ClearAssetBundle));
+        private static readonly Profiler ms_BuildManifestBundleProfiler = ms_BuildProfiler.CreateChild(nameof(BuildManifest));
 
 #if UNITY_IOS
-    private const string PLATFORM = "IOS";
+        private const string PLATFORM = "iOS";
 #elif UNITY_ANDROID
-    private const string PLATFORM = "Android";
+        private const string PLATFORM = "Android";
 #else
         private const string PLATFORM = "Windows";
 #endif
+        //bundleåç¼€
+        public const string BUNDLE_SUFFIX = ".ab";
+        public const string BUNDLE_MANIFEST_SUFFIX = ".manifest";
+        //bundleæè¿°æ–‡ä»¶åç§°
+        public const string MANIFEST = "manifest";
+
+        public static readonly ParallelOptions ParallelOptions = new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount * 2
+        };
+
+        //bundleæ‰“åŒ…Options
+        public readonly static BuildAssetBundleOptions BuildAssetBundleOptions = BuildAssetBundleOptions.ChunkBasedCompression | BuildAssetBundleOptions.DeterministicAssetBundle | BuildAssetBundleOptions.StrictMode | BuildAssetBundleOptions.DisableLoadAssetByFileName | BuildAssetBundleOptions.DisableLoadAssetByFileNameWithExtension;
 
         /// <summary>
-        /// ´ò°üÉèÖÃ
+        /// æ‰“åŒ…è®¾ç½®
         /// </summary>
         public static BuildSetting buildSetting { get; private set; }
 
-        /// <summary>
-        /// ´ò°üÄ¿Â¼
-        /// </summary>
-        public static string buildPath { get; set; }
+        #region Path
 
         /// <summary>
-        /// ÁÙÊ±Ä¿Â¼,ÁÙÊ±Éú³ÉµÄÎÄ¼ş¶¼Í³Ò»·ÅÔÚ¸ÃÄ¿Â¼
+        /// æ‰“åŒ…é…ç½®
+        /// </summary>
+        public readonly static string BuildSettingPath = Path.GetFullPath("BuildSetting.xml").Replace("\\", "/");
+
+        /// <summary>
+        /// ä¸´æ—¶ç›®å½•,ä¸´æ—¶ç”Ÿæˆçš„æ–‡ä»¶éƒ½ç»Ÿä¸€æ”¾åœ¨è¯¥ç›®å½•
         /// </summary>
         public readonly static string TempPath = Path.GetFullPath(Path.Combine(Application.dataPath, "Temp")).Replace("\\", "/");
 
         /// <summary>
-        /// ×ÊÔ´ÃèÊö__ÎÄ±¾
+        /// ä¸´æ—¶ç›®å½•,ä¸´æ—¶æ–‡ä»¶çš„abåŒ…éƒ½æ”¾åœ¨è¯¥æ–‡ä»¶å¤¹ï¼Œæ‰“åŒ…å®Œæˆåä¼šç§»é™¤
+        /// </summary>
+        public readonly static string TempBuildPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../TempBuild")).Replace("\\", "/");
+
+        /// <summary>
+        /// èµ„æºæè¿°__æ–‡æœ¬
         /// </summary>
         public readonly static string ResourcePath_Text = $"{TempPath}/Resource.txt";
 
         /// <summary>
-        /// ×ÊÔ´ÃèÊö__¶ş½øÖÆ
+        /// èµ„æºæè¿°__äºŒè¿›åˆ¶
         /// </summary>
-        public readonly static string ResourcePath_Binary = $"{TempPath}/Resource.bytes";
+        public static string ResourcePath_Binary = $"{TempPath}/Resource.bytes";
 
         /// <summary>
-        /// BundleÃèÊö__ÎÄ±¾
+        /// Bundleæè¿°__æ–‡æœ¬
         /// </summary>
         public readonly static string BundlePath_Text = $"{TempPath}/Bundle.txt";
 
         /// <summary>
-        /// BundleÃèÊö__¶ş½øÖÆ
+        /// Bundleæè¿°__äºŒè¿›åˆ¶
         /// </summary>
         public readonly static string BundlePath_Binary = $"{TempPath}/Bundle.bytes";
 
         /// <summary>
-        /// ×ÊÔ´ÒÀÀµÃèÊö__ÎÄ±¾
+        /// èµ„æºä¾èµ–æè¿°__æ–‡æœ¬
         /// </summary>
         public readonly static string DependencyPath_Text = $"{TempPath}/Dependency.txt";
 
         /// <summary>
-        /// ×ÊÔ´ÒÀÀµÃèÊö__¶ş½øÖÆ
+        /// èµ„æºä¾èµ–æè¿°__æ–‡æœ¬
         /// </summary>
         public readonly static string DependencyPath_Binary = $"{TempPath}/Dependency.bytes";
 
         /// <summary>
-        /// ´ò°üÅäÖÃ
+        /// æ‰“åŒ…ç›®å½•
         /// </summary>
-        public readonly static string BuildSettingPath = Path.GetFullPath("BuildSetting.xml").Replace("\\", "/");
+        public static string buildPath { get; set; }
 
-        #region BuildMenuItem
+        #endregion
+
+        #region Build MenuItem
+
         [MenuItem("Tools/ResBuild/Windows")]
         public static void BuildWindows()
         {
-            Debug.Log("¿ªÊ¼Build   Windows");
             Build();
         }
 
+        [MenuItem("Tools/ResBuild/Android")]
+        public static void BuildAndroid()
+        {
+            Build();
+        }
+
+        [MenuItem("Tools/ResBuild/iOS")]
+        public static void BuildIos()
+        {
+            Build();
+        }
+
+        #endregion
+
+        /// <summary>
+        /// åˆ‡æ¢æ‰“åŒ…å¹³å°
+        /// </summary>
         public static void SwitchPlatform()
         {
             string platform = PLATFORM;
+
             switch (platform)
             {
-                case "Windows":
+                case "windows":
                     EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64);
                     break;
-                case "IOS":
-                    EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
-                    break;
-                case "Android":
+                case "android":
                     EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+                    break;
+                case "ios":
+                    EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
                     break;
             }
         }
 
+        /// <summary>
+        /// åŠ è½½æ‰“åŒ…é…ç½®æ–‡ä»¶
+        /// </summary>
+        /// <param name="settingPath">æ‰“åŒ…é…ç½®è·¯å¾„</param>
         private static BuildSetting LoadSetting(string settingPath)
         {
             buildSetting = XmlUtility.Read<BuildSetting>(settingPath);
             if (buildSetting == null)
             {
-                throw new Exception($"Load buildSetting failed,SettingPath:{settingPath}");
+                throw new Exception($"Load buildSetting failed,SettingPath:{settingPath}.");
             }
             (buildSetting as ISupportInitialize)?.EndInit();
 
@@ -125,7 +173,6 @@ namespace AssetBundleFramework.Editor
                 buildPath += "/";
             }
             buildPath += $"{PLATFORM}/";
-
 
             return buildSetting;
         }
@@ -142,41 +189,60 @@ namespace AssetBundleFramework.Editor
             buildSetting = LoadSetting(BuildSettingPath);
             ms_LoadBuildSettingProfiler.Stop();
 
-            //ËÑ¼¯BundleĞÅÏ¢
+            //æœé›†bundleä¿¡æ¯
             ms_CollectProfiler.Start();
             Dictionary<string, List<string>> bundleDic = Collect();
             ms_CollectProfiler.Stop();
 
+            //æ‰“åŒ…assetbundle
+            ms_BuildBundleProfiler.Start();
+            BuildBundle(bundleDic);
+            ms_BuildBundleProfiler.Stop();
+
+            //æ¸…ç©ºå¤šä½™æ–‡ä»¶
+            ms_ClearBundleProfiler.Start();
+            ClearAssetBundle(buildPath, bundleDic);
+            ms_ClearBundleProfiler.Stop();
+
+            //æŠŠæè¿°æ–‡ä»¶æ‰“åŒ…bundle
+            ms_BuildManifestBundleProfiler.Start();
+            BuildManifest();
+            ms_BuildManifestBundleProfiler.Stop();
+
+            EditorUtility.ClearProgressBar();
+
             ms_BuildProfiler.Stop();
-            Debug.Log($"´ò°üÍê³É{ms_BuildProfiler}");
+
+            Debug.Log($"æ‰“åŒ…å®Œæˆ{ms_BuildProfiler}");
         }
 
         /// <summary>
-        /// ËÑ¼¯´ò°übundleµÄĞÅÏ¢
+        /// æœé›†æ‰“åŒ…bundleçš„ä¿¡æ¯
         /// </summary>
         /// <returns></returns>
+
         private static Dictionary<string, List<string>> Collect()
         {
-            //»ñÈ¡ËùÓĞÔÚ´ò°üÉèÖÃµÄÎÄ¼şÁĞ±í
+            //è·å–æ‰€æœ‰åœ¨æ‰“åŒ…è®¾ç½®çš„æ–‡ä»¶åˆ—è¡¨
             ms_CollectBuildSettingFileProfiler.Start();
             HashSet<string> files = buildSetting.Collect();
             ms_CollectBuildSettingFileProfiler.Stop();
 
-            //ËÑ¼¯ËùÓĞÎÄ¼şµÄÒÀÀµ¹ØÏµ
+            //æœé›†æ‰€æœ‰æ–‡ä»¶çš„ä¾èµ–å…³ç³»
             ms_CollectDependencyProfiler.Start();
             Dictionary<string, List<string>> dependencyDic = CollectDependency(files);
             ms_CollectDependencyProfiler.Stop();
 
-            //±ê¼ÇËùÓĞ×ÊÔ´µÄĞÅÏ¢
+            //æ ‡è®°æ‰€æœ‰èµ„æºçš„ä¿¡æ¯
             Dictionary<string, EResourceType> assetDic = new Dictionary<string, EResourceType>();
 
-            //±»´ò°üÅäÖÃ·ÖÎöµ½µÄÖ±½ÓÉèÖÃÎªDirect
+            //è¢«æ‰“åŒ…é…ç½®åˆ†æåˆ°çš„ç›´æ¥è®¾ç½®ä¸ºDirect
             foreach (string url in files)
             {
                 assetDic.Add(url, EResourceType.Direct);
             }
 
-            //ÒÀÀµµÄ×ÊÔ´±ê¼ÇÎªDependency£¬ÒÑ¾­´æÔÚµÄËµÃ÷ÁË¾ÍÊÇDirectµÄ×ÊÔ´
+            //ä¾èµ–çš„èµ„æºæ ‡è®°ä¸ºDependencyï¼Œå·²ç»å­˜åœ¨çš„è¯´æ˜æ˜¯Directçš„èµ„æº
             foreach (string url in dependencyDic.Keys)
             {
                 if (!assetDic.ContainsKey(url))
@@ -185,12 +251,12 @@ namespace AssetBundleFramework.Editor
                 }
             }
 
-            //¸Ã×Ö¶Î±£´æBundle¶ÔÓ¦µÄ×ÊÔ´¼¯ºÏ
+            //è¯¥å­—å…¸ä¿å­˜bundleå¯¹åº”çš„èµ„æºé›†åˆ
             ms_CollectBundleProfiler.Start();
             Dictionary<string, List<string>> bundleDic = CollectBundle(buildSetting, assetDic, dependencyDic);
             ms_CollectBundleProfiler.Stop();
 
-            //Éú³ÉManifestÎÄ¼ş
+            //ç”ŸæˆManifestæ–‡ä»¶
             ms_GenerateManifestProfiler.Start();
             GenerateManifest(assetDic, bundleDic, dependencyDic);
             ms_GenerateManifestProfiler.Stop();
@@ -199,52 +265,47 @@ namespace AssetBundleFramework.Editor
         }
 
         /// <summary>
-        /// ËÑ¼¯Ö¸¶¨ÎÄ¼ş¼¯ºÏµÄËùÓĞÒÀÀµĞÅÏ¢
+        /// æ”¶é›†æŒ‡å®šæ–‡ä»¶é›†åˆæ‰€æœ‰çš„ä¾èµ–ä¿¡æ¯
         /// </summary>
-        /// <param name="files"></param>
-        /// <returns></returns>
+        /// <param name="files">æ–‡ä»¶é›†åˆ</param>
+        /// <returns>ä¾èµ–ä¿¡æ¯</returns>
         private static Dictionary<string, List<string>> CollectDependency(ICollection<string> files)
         {
-            float min = collectBundleInfoProgress.x;
-            float max = collectBundleInfoProgress.y;
+            float min = ms_GetDependencyProgress.x;
+            float max = ms_GetDependencyProgress.y;
 
             Dictionary<string, List<string>> dependencyDic = new Dictionary<string, List<string>>();
 
-            //ÉùÃ÷fileListºó£¬²»ĞèÒªµİ¹éÁË
+            //å£°æ˜fileListåï¼Œå°±ä¸éœ€è¦é€’å½’äº†
             List<string> fileList = new List<string>(files);
 
             for (int i = 0; i < fileList.Count; i++)
             {
                 string assetUrl = fileList[i];
+
                 if (dependencyDic.ContainsKey(assetUrl))
-                {
                     continue;
-                }
+
                 if (i % 10 == 0)
                 {
-                    //Ö»ÄÜ´ó¸ÅÄ£Äâ½ø¶È
-                    float progress = min + (max - min) * (float)i / (files.Count * 3);
-                    EditorUtility.DisplayProgressBar($"{nameof(CollectDependency)}", "ËÑ¼¯ÒÀÀµĞÅÏ¢", progress);
+                    //åªèƒ½å¤§æ¦‚æ¨¡æ‹Ÿè¿›åº¦
+                    float progress = min + (max - min) * ((float)i / (files.Count * 3));
+                    EditorUtility.DisplayProgressBar($"{nameof(CollectDependency)}", "æœé›†ä¾èµ–ä¿¡æ¯", progress);
                 }
 
                 string[] dependencies = AssetDatabase.GetDependencies(assetUrl, false);
-
                 List<string> dependencyList = new List<string>(dependencies.Length);
 
-                //¹ıÂË²»·ûºÏÒªÇóµÄAsset
-                for (int j = 0; j < dependencies.Length; j++)
+                //è¿‡æ»¤æ‰ä¸ç¬¦åˆè¦æ±‚çš„asset
+                for (int ii = 0; ii < dependencies.Length; ii++)
                 {
-                    string tempAssetUrl = dependencies[j];
+                    string tempAssetUrl = dependencies[ii];
                     string extension = Path.GetExtension(tempAssetUrl).ToLower();
                     if (string.IsNullOrEmpty(extension) || extension == ".cs" || extension == ".dll")
-                    {
                         continue;
-                    }
                     dependencyList.Add(tempAssetUrl);
                     if (!fileList.Contains(tempAssetUrl))
-                    {
                         fileList.Add(tempAssetUrl);
-                    }
                 }
 
                 dependencyDic.Add(assetUrl, dependencyList);
@@ -253,15 +314,22 @@ namespace AssetBundleFramework.Editor
             return dependencyDic;
         }
 
+        /// <summary>
+        /// æœé›†bundleå¯¹åº”çš„abåå­—
+        /// </summary>
+        /// <param name="buildSetting"></param>
+        /// <param name="assetDic">èµ„æºåˆ—è¡¨</param>
+        /// <param name="dependencyDic">èµ„æºä¾èµ–ä¿¡æ¯</param>
+        /// <returns>bundleåŒ…ä¿¡æ¯</returns>
         private static Dictionary<string, List<string>> CollectBundle(BuildSetting buildSetting, Dictionary<string, EResourceType> assetDic, Dictionary<string, List<string>> dependencyDic)
         {
-            float min = collectBundleInfoProgress.x;
-            float max = collectBundleInfoProgress.y;
+            float min = ms_CollectBundleInfoProgress.x;
+            float max = ms_CollectBundleInfoProgress.y;
 
-            EditorUtility.DisplayProgressBar($"{nameof(CollectBundle)}", "ËÑ¼¯bundleĞÅÏ¢", min);
+            EditorUtility.DisplayProgressBar($"{nameof(CollectBundle)}", "æœé›†bundleä¿¡æ¯", min);
 
             Dictionary<string, List<string>> bundleDic = new Dictionary<string, List<string>>();
-            //Íâ²¿×ÊÔ´
+            //å¤–éƒ¨èµ„æº
             List<string> notInRuleList = new List<string>();
 
             int index = 0;
@@ -271,7 +339,7 @@ namespace AssetBundleFramework.Editor
                 string assetUrl = pair.Key;
                 string bundleName = buildSetting.GetBundleName(assetUrl, pair.Value);
 
-                //Ã»ÓĞbundleNameµÄ×ÊÔ´ÎªÍâ²¿×ÊÔ´
+                //æ²¡æœ‰bundleNameçš„èµ„æºä¸ºå¤–éƒ¨èµ„æº
                 if (bundleName == null)
                 {
                     notInRuleList.Add(assetUrl);
@@ -287,77 +355,75 @@ namespace AssetBundleFramework.Editor
 
                 list.Add(assetUrl);
 
-                EditorUtility.DisplayProgressBar($"{nameof(CollectBundle)}", "ËÑ¼¯bundleĞÅÏ¢", min + (max - min) * ((float)index / assetDic.Count));
-            }
-            if (notInRuleList.Count > 0)
-            {
-                string message = string.Empty;
-                for (int i = 0; i < notInRuleList.Count; i++)
-                {
-                    message += "\n" + notInRuleList[i];
-                }
-                EditorUtility.ClearProgressBar();
-                throw new Exception($"×ÊÔ´²»ÔÚ´ò°ü¹æÔò,»òÕßºó×º²»Æ¥Åä!!!{message}");
+                EditorUtility.DisplayProgressBar($"{nameof(CollectBundle)}", "æœé›†bundleä¿¡æ¯", min + (max - min) * ((float)index / assetDic.Count));
             }
 
+            //todo...  å¤–éƒ¨èµ„æº
+            if (notInRuleList.Count > 0)
+            {
+                string massage = string.Empty;
+                for (int i = 0; i < notInRuleList.Count; i++)
+                {
+                    massage += "\n" + notInRuleList[i];
+                }
+                EditorUtility.ClearProgressBar();
+                throw new Exception($"èµ„æºä¸åœ¨æ‰“åŒ…è§„åˆ™,æˆ–è€…åç¼€ä¸åŒ¹é…ï¼ï¼ï¼{massage}");
+            }
+
+            //æ’åº
             foreach (List<string> list in bundleDic.Values)
             {
                 list.Sort();
             }
+
             return bundleDic;
         }
 
         /// <summary>
-        /// Éú³É×ÊÔ´ÃèÊöÎÄ¼ş
+        /// ç”Ÿæˆèµ„æºæè¿°æ–‡ä»¶
+        /// <param name="assetDic">èµ„æºåˆ—è¡¨</param>
+        /// <param name="bundleDic">bundleåŒ…ä¿¡æ¯</param>
+        /// <param name="dependencyDic">èµ„æºä¾èµ–ä¿¡æ¯</param>
         /// </summary>
-        /// <param name="assetDic"></param>
-        /// <param name="bundleDic"></param>
-        /// <param name="dependencyDic"></param>
-        private static void GenerateManifest(Dictionary<string, EResourceType> assetDic,
-            Dictionary<string, List<string>> bundleDic, Dictionary<string, List<string>> dependencyDic)
+        private static void GenerateManifest(Dictionary<string, EResourceType> assetDic, Dictionary<string, List<string>> bundleDic, Dictionary<string, List<string>> dependencyDic)
         {
-            float min = generateBundleInfoProgress.x;
-            float max = generateBundleInfoProgress.y;
+            float min = ms_GenerateBuildInfoProgress.x;
+            float max = ms_GenerateBuildInfoProgress.y;
 
-            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "Éú³É´ò°üĞÅÏ¢", min);
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "ç”Ÿæˆæ‰“åŒ…ä¿¡æ¯", min);
 
-            //Éú³ÉÁÙÊ±´æ·ÅÎÄ¼şµÄÄ¿Â¼
-            if (Directory.Exists(TempPath))
-            {
+            //ç”Ÿæˆä¸´æ—¶å­˜æ”¾æ–‡ä»¶çš„ç›®å½•
+            if (!Directory.Exists(TempPath))
                 Directory.CreateDirectory(TempPath);
-            }
 
-            //×ÊÔ´Ó³Éäid
+            //èµ„æºæ˜ å°„id
             Dictionary<string, ushort> assetIdDic = new Dictionary<string, ushort>();
 
-            #region Éú³É×ÊÔ´ÃèÊöĞÅÏ¢
+            #region ç”Ÿæˆèµ„æºæè¿°ä¿¡æ¯
             {
-                //É¾³ı×ÊÔ´ÃèÊöÎÄ±¾ÎÄ¼ş
+                //åˆ é™¤èµ„æºæè¿°æ–‡æœ¬æ–‡ä»¶
                 if (File.Exists(ResourcePath_Text))
-                {
                     File.Delete(ResourcePath_Text);
-                }
 
-                //É¾³ı×ÊÔ´ÃèÊö¶ş½øÖÆÎÄ¼ş
+                //åˆ é™¤èµ„æºæè¿°äºŒè¿›åˆ¶æ–‡ä»¶
                 if (File.Exists(ResourcePath_Binary))
-                {
                     File.Delete(ResourcePath_Binary);
-                }
 
-                //Ğ´Èë×ÊÔ´ÁĞ±í
+                //å†™å…¥èµ„æºåˆ—è¡¨
                 StringBuilder resourceSb = new StringBuilder();
                 MemoryStream resourceMs = new MemoryStream();
                 BinaryWriter resourceBw = new BinaryWriter(resourceMs);
                 if (assetDic.Count > ushort.MaxValue)
                 {
                     EditorUtility.ClearProgressBar();
-                    throw new Exception($"×ÊÔ´¸öÊı³¬³ö{ushort.MaxValue}");
+                    throw new Exception($"èµ„æºä¸ªæ•°è¶…å‡º{ushort.MaxValue}");
                 }
 
-                //Ğ´Èë¸öÊı
+                //å†™å…¥ä¸ªæ•°
                 resourceBw.Write((ushort)assetDic.Count);
                 List<string> keys = new List<string>(assetDic.Keys);
                 keys.Sort();
+
                 for (ushort i = 0; i < keys.Count; i++)
                 {
                     string assetUrl = keys[i];
@@ -365,99 +431,92 @@ namespace AssetBundleFramework.Editor
                     resourceSb.AppendLine($"{i}\t{assetUrl}");
                     resourceBw.Write(assetUrl);
                 }
+
                 resourceMs.Flush();
                 byte[] buffer = resourceMs.GetBuffer();
                 resourceBw.Close();
-                //Ğ´Èë×ÊÔ´ÃèÊöÎÄ±¾ÎÄ¼ş
+                //å†™å…¥èµ„æºæè¿°æ–‡æœ¬æ–‡ä»¶
                 File.WriteAllText(ResourcePath_Text, resourceSb.ToString(), Encoding.UTF8);
                 File.WriteAllBytes(ResourcePath_Binary, buffer);
             }
             #endregion
 
-            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "Éú³É´ò°üĞÅÏ¢", min + (max - min) * 0.3f);
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "ç”Ÿæˆæ‰“åŒ…ä¿¡æ¯", min + (max - min) * 0.3f);
 
-            #region Éú³ÉbundleÃèÊöĞÅÏ¢
+            #region ç”Ÿæˆbundleæè¿°ä¿¡æ¯
             {
-                //É¾³ıbundleÃèÊöÎÄ±¾ÎÄ¼ş
+                //åˆ é™¤bundleæè¿°æ–‡æœ¬æ–‡ä»¶
                 if (File.Exists(BundlePath_Text))
-                {
                     File.Delete(BundlePath_Text);
-                }
 
-                //É¾³ıbundleÃèÊö¶ş½øÖÆÎÄ¼ş
+                //åˆ é™¤bundleæè¿°äºŒè¿›åˆ¶æ–‡ä»¶
                 if (File.Exists(BundlePath_Binary))
-                {
                     File.Delete(BundlePath_Binary);
-                }
 
-                //Ğ´ÈëBundleĞÅÏ¢
+                //å†™å…¥bundleä¿¡æ¯
                 StringBuilder bundleSb = new StringBuilder();
                 MemoryStream bundleMs = new MemoryStream();
                 BinaryWriter bundleBw = new BinaryWriter(bundleMs);
 
-                //Ğ´Èëbundle¸öÊı
-                bundleBw.Write((ushort)assetDic.Count);
-                foreach (KeyValuePair<string, List<string>> kv in bundleDic)
+                //å†™å…¥bundleä¸ªæ•°
+                bundleBw.Write((ushort)bundleDic.Count);
+                foreach (var kv in bundleDic)
                 {
                     string bundleName = kv.Key;
                     List<string> assets = kv.Value;
 
-                    //Ğ´Èëbundle
+                    //å†™å…¥bundle
                     bundleSb.AppendLine(bundleName);
                     bundleBw.Write(bundleName);
 
-                    //Ğ´Èë×ÊÔ´¸öÊı
+                    //å†™å…¥èµ„æºä¸ªæ•°
                     bundleBw.Write((ushort)assets.Count);
 
                     for (int i = 0; i < assets.Count; i++)
                     {
                         string assetUrl = assets[i];
-                        ushort assetID = assetIdDic[assetUrl];
+                        ushort assetId = assetIdDic[assetUrl];
                         bundleSb.AppendLine($"\t{assetUrl}");
-                        bundleBw.Write(assetID);
+                        //å†™å…¥èµ„æºid,ç”¨idæ›¿æ¢å­—ç¬¦ä¸²å¯ä»¥èŠ‚çœå†…å­˜
+                        bundleBw.Write(assetId);
                     }
                 }
+
                 bundleMs.Flush();
                 byte[] buffer = bundleMs.GetBuffer();
                 bundleBw.Close();
-
-                //Ğ´Èë×ÊÔ´ÃèÊöÎÄ±¾ÎÄ¼ş
+                //å†™å…¥èµ„æºæè¿°æ–‡æœ¬æ–‡ä»¶
                 File.WriteAllText(BundlePath_Text, bundleSb.ToString(), Encoding.UTF8);
                 File.WriteAllBytes(BundlePath_Binary, buffer);
             }
             #endregion
 
-            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "Éú³É´ò°üĞÅÏ¢", min + (max - min) * 0.8f);
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "ç”Ÿæˆæ‰“åŒ…ä¿¡æ¯", min + (max - min) * 0.8f);
 
-            #region Éú³É×ÊÔ´ÒÀÀµÃèÊöĞÅÏ¢
+            #region ç”Ÿæˆèµ„æºä¾èµ–æè¿°ä¿¡æ¯
             {
-                //É¾³ı×ÊÔ´ÒÀÀµÃèÊöÎÄ±¾ÎÄ¼ş
+                //åˆ é™¤èµ„æºä¾èµ–æè¿°æ–‡æœ¬æ–‡ä»¶
                 if (File.Exists(DependencyPath_Text))
-                {
                     File.Delete(DependencyPath_Text);
-                }
 
-                //É¾³ı×ÊÔ´ÒÀÀµÃèÊö¶ş½øÖÆÎÄ¼ş
+                //åˆ é™¤èµ„æºä¾èµ–æè¿°äºŒè¿›åˆ¶æ–‡ä»¶
                 if (File.Exists(DependencyPath_Binary))
-                {
                     File.Delete(DependencyPath_Binary);
-                }
 
-                //Ğ´Èë×ÊÔ´ÒÀÀµĞÅÏ¢
+                //å†™å…¥èµ„æºä¾èµ–ä¿¡æ¯
                 StringBuilder dependencySb = new StringBuilder();
                 MemoryStream dependencyMs = new MemoryStream();
                 BinaryWriter dependencyBw = new BinaryWriter(dependencyMs);
 
-                //ÓÃÓÚ±£´æ×ÊÔ´ÒÀÀµÁ´
+                //ç”¨äºä¿å­˜èµ„æºä¾èµ–é“¾
                 List<List<ushort>> dependencyList = new List<List<ushort>>();
                 foreach (var kv in dependencyDic)
                 {
                     List<string> dependencyAssets = kv.Value;
 
+                    //ä¾èµ–ä¸º0çš„ä¸éœ€è¦å†™å…¥
                     if (dependencyAssets.Count == 0)
-                    {
                         continue;
-                    }
 
                     string assetUrl = kv.Key;
 
@@ -477,58 +536,176 @@ namespace AssetBundleFramework.Editor
                     if (ids.Count > byte.MaxValue)
                     {
                         EditorUtility.ClearProgressBar();
-                        throw new Exception($"×ÊÔ´{assetUrl}µÄÒÀÀµ¸öÊı³¬³öÁËÒ»¸ö×Ö½ÚµÄÉÏÏŞ£º{byte.MaxValue}");
+                        throw new Exception($"èµ„æº{assetUrl}çš„ä¾èµ–è¶…å‡ºä¸€ä¸ªå­—èŠ‚ä¸Šé™:{byte.MaxValue}");
                     }
 
                     dependencyList.Add(ids);
-
                 }
 
-                //Ğ´ÈëÒÀÀµÁ´¸öÊı
+                //å†™å…¥ä¾èµ–é“¾ä¸ªæ•°
                 dependencyBw.Write((ushort)dependencyList.Count);
                 for (int i = 0; i < dependencyList.Count; i++)
                 {
-                    //Ğ´Èë×ÊÔ´Êı
+                    //å†™å…¥èµ„æºæ•°
                     List<ushort> ids = dependencyList[i];
                     dependencyBw.Write((ushort)ids.Count);
-                    for (int j = 0; j < ids.Count; j++)
-                    {
-                        dependencyBw.Write(ids[j]);
-                    }
+                    for (int ii = 0; ii < ids.Count; ii++)
+                        dependencyBw.Write(ids[ii]);
                 }
+
                 dependencyMs.Flush();
                 byte[] buffer = dependencyMs.GetBuffer();
                 dependencyBw.Close();
-                //Ğ´ÈëÒÀÀµÃèÊöÎÄ±¾ÎÄ¼ş
+                //å†™å…¥èµ„æºä¾èµ–æè¿°æ–‡æœ¬æ–‡ä»¶
                 File.WriteAllText(DependencyPath_Text, dependencySb.ToString(), Encoding.UTF8);
                 File.WriteAllBytes(DependencyPath_Binary, buffer);
             }
             #endregion
 
+
             AssetDatabase.Refresh();
 
-            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "Éú³É´ò°üĞÅÏ¢", max);
+            EditorUtility.DisplayProgressBar($"{nameof(GenerateManifest)}", "ç”Ÿæˆæ‰“åŒ…ä¿¡æ¯", max);
+
             EditorUtility.ClearProgressBar();
         }
 
+        /// <summary>
+        /// æ‰“åŒ…AssetBundle
+        /// <param name="assetDic">èµ„æºåˆ—è¡¨</param>
+        /// <param name="bundleDic">bundleåŒ…ä¿¡æ¯</param>
+        /// <param name="dependencyDic">èµ„æºä¾èµ–ä¿¡æ¯</param>
+        /// </summary>
+        private static AssetBundleManifest BuildBundle(Dictionary<string, List<string>> bundleDic)
+        {
+            float min = ms_BuildBundleProgress.x;
+            float max = ms_BuildBundleProgress.y;
+
+            EditorUtility.DisplayProgressBar($"{nameof(BuildBundle)}", "æ‰“åŒ…AssetBundle", min);
+
+            if (!Directory.Exists(buildPath))
+                Directory.CreateDirectory(buildPath);
+
+            AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(buildPath, GetBuilds(bundleDic), BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
+
+            EditorUtility.DisplayProgressBar($"{nameof(BuildBundle)}", "æ‰“åŒ…AssetBundle", max);
+
+            return manifest;
+        }
 
         /// <summary>
-        /// »ñÈ¡Ö¸¶¨Â·¾¶µÄÎÄ¼ş
+        /// æŠŠResource.bytesã€bundle.bytesã€Dependency.bytes æ‰“åŒ…assetbundle
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="prefix"></param>
-        /// <param name="suffixes"></param>
+        private static void BuildManifest()
+        {
+            float min = ms_BuildManifestProgress.x;
+            float max = ms_BuildManifestProgress.y;
+
+            EditorUtility.DisplayProgressBar($"{nameof(BuildManifest)}", "å°†Manifestæ‰“åŒ…æˆAssetBundle", min);
+
+            if (!Directory.Exists(TempBuildPath))
+                Directory.CreateDirectory(TempBuildPath);
+
+            string prefix = Application.dataPath.Replace("/Assets", "/").Replace("\\", "/");
+
+            AssetBundleBuild manifest = new AssetBundleBuild();
+            manifest.assetBundleName = $"{MANIFEST}{BUNDLE_SUFFIX}";
+            manifest.assetNames = new string[3]
+            {
+                ResourcePath_Binary.Replace(prefix,""),
+                BundlePath_Binary.Replace(prefix,""),
+                DependencyPath_Binary.Replace(prefix,""),
+            };
+
+            EditorUtility.DisplayProgressBar($"{nameof(BuildManifest)}", "å°†Manifestæ‰“åŒ…æˆAssetBundle", min + (max - min) * 0.5f);
+
+            AssetBundleManifest assetBundleManifest = BuildPipeline.BuildAssetBundles(TempBuildPath, new AssetBundleBuild[] { manifest }, BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
+
+            //æŠŠæ–‡ä»¶copyåˆ°buildç›®å½•
+            if (assetBundleManifest)
+            {
+                string manifestFile = $"{TempBuildPath}/{MANIFEST}{BUNDLE_SUFFIX}";
+                string target = $"{buildPath}/{MANIFEST}{BUNDLE_SUFFIX}";
+                if (File.Exists(manifestFile))
+                {
+                    File.Copy(manifestFile, target);
+                }
+            }
+
+            //åˆ é™¤ä¸´æ—¶ç›®å½•
+            if (Directory.Exists(TempBuildPath))
+                Directory.Delete(TempBuildPath, true);
+
+            EditorUtility.DisplayProgressBar($"{nameof(BuildManifest)}", "å°†Manifestæ‰“åŒ…æˆAssetBundle", max);
+        }
+
+        /// <summary>
+        /// è·å–æ‰€æœ‰éœ€è¦æ‰“åŒ…çš„AssetBundleBuild
+        /// </summary>
+        /// <param name="bundleTable">bunldeä¿¡æ¯</param>
         /// <returns></returns>
+        private static AssetBundleBuild[] GetBuilds(Dictionary<string, List<string>> bundleTable)
+        {
+            int index = 0;
+            AssetBundleBuild[] assetBundleBuilds = new AssetBundleBuild[bundleTable.Count];
+            foreach (KeyValuePair<string, List<string>> pair in bundleTable)
+            {
+                assetBundleBuilds[index++] = new AssetBundleBuild()
+                {
+                    assetBundleName = pair.Key,
+                    assetNames = pair.Value.ToArray(),
+                };
+            }
+
+            return assetBundleBuilds;
+        }
+
+        /// <summary>
+        /// æ¸…ç©ºå¤šä½™çš„assetbundle
+        /// </summary>
+        /// <param name="path">æ‰“åŒ…è·¯å¾„</param>
+        /// <param name="bundleDic"></param>
+        private static void ClearAssetBundle(string path, Dictionary<string, List<string>> bundleDic)
+        {
+            float min = ms_ClearBundleProgress.x;
+            float max = ms_ClearBundleProgress.y;
+
+            EditorUtility.DisplayProgressBar($"{nameof(ClearAssetBundle)}", "æ¸…é™¤å¤šä½™çš„AssetBundleæ–‡ä»¶", min);
+
+            List<string> fileList = GetFiles(path, null, null);
+            HashSet<string> fileSet = new HashSet<string>(fileList);
+
+            foreach (string bundle in bundleDic.Keys)
+            {
+                fileSet.Remove($"{path}{bundle}");
+                fileSet.Remove($"{path}{bundle}{BUNDLE_MANIFEST_SUFFIX}");
+            }
+
+            fileSet.Remove($"{path}{PLATFORM}");
+            fileSet.Remove($"{path}{PLATFORM}{BUNDLE_MANIFEST_SUFFIX}");
+
+            Parallel.ForEach(fileSet, ParallelOptions, File.Delete);
+
+            EditorUtility.DisplayProgressBar($"{nameof(ClearAssetBundle)}", "æ¸…é™¤å¤šä½™çš„AssetBundleæ–‡ä»¶", max);
+        }
+
+        /// <summary>
+        /// è·å–æŒ‡å®šè·¯å¾„çš„æ–‡ä»¶
+        /// </summary>
+        /// <param name="path">æŒ‡å®šè·¯å¾„</param>
+        /// <param name="prefix">å‰ç¼€</param>
+        /// <param name="suffixes">åç¼€é›†åˆ</param>
+        /// <returns>æ–‡ä»¶åˆ—è¡¨</returns>
         public static List<string> GetFiles(string path, string prefix, params string[] suffixes)
         {
             string[] files = Directory.GetFiles(path, $"*.*", SearchOption.AllDirectories);
-            List<string> result = new List<string>();
+            List<string> result = new List<string>(files.Length);
 
-            for (int i = 0; i < files.Length; i++)
+            for (int i = 0; i < files.Length; ++i)
             {
                 string file = files[i].Replace('\\', '/');
 
-                if (prefix != null && file.StartsWith(prefix, StringComparison.InvariantCulture))
+                if (prefix != null && !file.StartsWith(prefix, StringComparison.InvariantCulture))
                 {
                     continue;
                 }
@@ -536,9 +713,10 @@ namespace AssetBundleFramework.Editor
                 if (suffixes != null && suffixes.Length > 0)
                 {
                     bool exist = false;
-                    for (int j = 0; j < suffixes.Length; j++)
+
+                    for (int ii = 0; ii < suffixes.Length; ii++)
                     {
-                        string suffix = suffixes[j];
+                        string suffix = suffixes[ii];
                         if (file.EndsWith(suffix, StringComparison.InvariantCulture))
                         {
                             exist = true;
@@ -547,18 +725,13 @@ namespace AssetBundleFramework.Editor
                     }
 
                     if (!exist)
-                    {
                         continue;
-                    }
                 }
+
                 result.Add(file);
             }
 
-
             return result;
         }
-
-        #endregion
     }
-
 }

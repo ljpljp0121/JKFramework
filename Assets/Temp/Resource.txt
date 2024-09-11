@@ -71,3 +71,5 @@
 70	Assets/AssetBundle/UI/Test/TestUI.prefab
 71	Assets/AssetBundle/UI/TestUI.prefab
 72	Assets/AssetBundle/UI/UIRoot.prefab
+73	Packages/com.unity.render-pipelines.universal/Runtime/Materials/Lit.mat
+74	Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader

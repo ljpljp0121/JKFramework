@@ -1,5 +1,4 @@
-using System;
-using System.Collections;
+ï»¿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -7,23 +6,23 @@ using System.Xml.Serialization;
 using UnityEditor;
 using UnityEngine;
 
-namespace AssetBundleFramework.Editor
+namespace AssetBundleFramework
 {
     public class BuildSetting : ISupportInitialize
     {
-        [DisplayName("ÏîÄ¿Ãû³Æ")]
+        [DisplayName("é¡¹ç›®åç§°")]
         [XmlAttribute("ProjectName")]
         public string projectName { get; set; }
 
-        [DisplayName("ºó×ºÁĞ±í")]
-        [XmlElement("SuffixList")]
+        [DisplayName("åç¼€åˆ—è¡¨")]
+        [XmlAttribute("SuffixList")]
         public List<string> suffixList { get; set; } = new List<string>();
 
-        [DisplayName("´ò°üÎÄ¼şµÄÄ¿Â¼ÎÄ¼ş¼Ğ")]
+        [DisplayName("æ‰“åŒ…æ–‡ä»¶çš„ç›®æ ‡æ–‡ä»¶å¤¹")]
         [XmlAttribute("BuildRoot")]
         public string buildRoot { get; set; }
 
-        [DisplayName("´ò°üÑ¡Ïî")]
+        [DisplayName("æ‰“åŒ…é€‰é¡¹")]
         [XmlElement("BuildItem")]
         public List<BuildItem> items { get; set; } = new List<BuildItem>();
 
@@ -32,7 +31,6 @@ namespace AssetBundleFramework.Editor
 
         public void BeginInit()
         {
-
         }
 
         public void EndInit()
@@ -49,47 +47,47 @@ namespace AssetBundleFramework.Editor
                 {
                     if (!Directory.Exists(buildItem.assetPath))
                     {
-                        throw new Exception($"²»´æÔÚ×ÊÔ´Â·¾¶: {buildItem.assetPath}");
+                        throw new Exception($"ä¸å­˜åœ¨èµ„æºè·¯å¾„:{buildItem.assetPath}");
                     }
                 }
 
-                //¸ù¾İºó×º´¦Àí
+                //å¤„ç†åç¼€
                 string[] prefixes = buildItem.suffix.Split('|');
-                for (int j = 0; j < prefixes.Length; j++)
+                for (int ii = 0; ii < prefixes.Length; ii++)
                 {
-                    string prefix = prefixes[j].Trim();
+                    string prefix = prefixes[ii].Trim();
                     if (!string.IsNullOrEmpty(prefix))
-                    {
                         buildItem.suffixes.Add(prefix);
-                    }
                 }
 
                 if (itemDic.ContainsKey(buildItem.assetPath))
                 {
-                    throw new Exception($"ÖØ¸´µÄ×ÊÔ´Â·¾¶: {buildItem.assetPath}");
+                    throw new Exception($"é‡å¤çš„èµ„æºè·¯å¾„:{buildItem.assetPath}");
                 }
                 itemDic.Add(buildItem.assetPath, buildItem);
             }
         }
 
         /// <summary>
-        /// »ñÈ¡ËùÓĞÔÚ´ò°üÉèÖÃµÄÎÄ¼şÁĞ±í
+        /// è·å–æ‰€æœ‰åœ¨æ‰“åŒ…è®¾ç½®çš„æ–‡ä»¶åˆ—è¡¨
         /// </summary>
-        /// <returns></returns>
+        /// <returns>æ–‡ä»¶åˆ—è¡¨</returns>
         public HashSet<string> Collect()
         {
             float min = Builder.collectRuleFileProgress.x;
             float max = Builder.collectRuleFileProgress.y;
-            EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "ËÑ¼¯´ò°ü¹æÔò×ÊÔ´", min);
 
-            //´¦ÀíÃ¿¸ö¹æÔòºöÂÔµÄÄ¿Â¼,ÈçÂ·¾¶A/B/C,ĞèÒªºöÂÔA/B
+            EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "æœé›†æ‰“åŒ…è§„åˆ™èµ„æº", min);
+
+            //å¤„ç†æ¯ä¸ªè§„åˆ™å¿½ç•¥çš„ç›®å½•,å¦‚è·¯å¾„A/B/C,éœ€è¦å¿½ç•¥A/B
             for (int i = 0; i < items.Count; i++)
             {
                 BuildItem buildItem_i = items[i];
+
                 if (buildItem_i.resourceType != EResourceType.Direct)
                     continue;
 
-                buildItem_i.ignorPaths.Clear();
+                buildItem_i.ignorePaths.Clear();
                 for (int j = 0; j < items.Count; j++)
                 {
                     BuildItem buildItem_j = items[j];
@@ -97,20 +95,20 @@ namespace AssetBundleFramework.Editor
                     {
                         if (buildItem_j.assetPath.StartsWith(buildItem_i.assetPath, StringComparison.InvariantCulture))
                         {
-                            buildItem_i.ignorPaths.Add(buildItem_j.assetPath);
+                            buildItem_i.ignorePaths.Add(buildItem_j.assetPath);
                         }
                     }
                 }
             }
 
-            //´æ´¢±»¹æÔò·ÖÎöµ½µÄËùÓĞÎÄ¼ş
+            //å­˜å‚¨è¢«è§„åˆ™åˆ†æåˆ°çš„æ‰€æœ‰æ–‡ä»¶
             HashSet<string> files = new HashSet<string>();
 
             for (int i = 0; i < items.Count; i++)
             {
                 BuildItem buildItem = items[i];
 
-                EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "ËÑ¼¯´ò°ü¹æÔò×ÊÔ´", min + (max - min) * ((float)i / items.Count - 1));
+                EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "æœé›†æ‰“åŒ…è§„åˆ™èµ„æº", min + (max - min) * ((float)i / (items.Count - 1)));
 
                 if (buildItem.resourceType != EResourceType.Direct)
                     continue;
@@ -120,49 +118,244 @@ namespace AssetBundleFramework.Editor
                 {
                     string file = tempFiles[j];
 
-                    //¹ıÂË±»ºöÂÔµÄ
-                    if (IsIgnore(buildItem.ignorPaths, file))
+                    //è¿‡æ»¤è¢«å¿½ç•¥çš„
+                    if (IsIgnore(buildItem.ignorePaths, file))
                         continue;
 
                     files.Add(file);
                 }
 
-                EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "ËÑ¼¯´ò°üÉèÖÃ×ÊÔ´", (float)(i + 1) / items.Count);
+                EditorUtility.DisplayProgressBar($"{nameof(Collect)}", "æœé›†æ‰“åŒ…è®¾ç½®èµ„æº", (float)(i + 1) / items.Count);
             }
+
             return files;
         }
 
         /// <summary>
-        /// ÎÄ¼şÊÇ·ñÔÚºöÂÔÁĞ±íÀï
+        /// æ–‡ä»¶æ˜¯å¦åœ¨å¿½ç•¥åˆ—è¡¨
         /// </summary>
-        /// <param name="ignoreList"></param>
-        /// <param name="file"></param>
+        /// <param name="ignoreList">å¿½ç•¥è·¯å¾„åˆ—è¡¨</param>
+        /// <param name="file">æ–‡ä»¶è·¯å¾„</param>
         /// <returns></returns>
         public bool IsIgnore(List<string> ignoreList, string file)
         {
             for (int i = 0; i < ignoreList.Count; i++)
             {
                 string ignorePath = ignoreList[i];
-                if (string.IsNullOrEmpty(ignorePath)) continue;
+                if (string.IsNullOrEmpty(ignorePath))
+                    continue;
                 if (file.StartsWith(ignorePath, StringComparison.InvariantCulture))
-                {
                     return true;
-                }
             }
+
             return false;
         }
 
         /// <summary>
-        /// »ñÈ¡BundleName
+        /// é€šè¿‡èµ„æºè·å–æ‰“åŒ…é€‰é¡¹
         /// </summary>
-        /// <param name="assetUrl"></param>
-        /// <param name="resourceType"></param>
-        /// <returns></returns>
+        /// <param name="assetUrl">èµ„æºè·¯å¾„</param>
+        /// <returns>æ‰“åŒ…é€‰é¡¹</returns>
+        public BuildItem GetBuildItem(string assetUrl)
+        {
+            BuildItem item = null;
+            for (int i = 0; i < items.Count; ++i)
+            {
+                BuildItem tempItem = items[i];
+                //å‰é¢æ˜¯å¦åŒ¹é…
+                if (assetUrl.StartsWith(tempItem.assetPath, StringComparison.InvariantCulture))
+                {
+                    //æ‰¾åˆ°ä¼˜å…ˆçº§æœ€é«˜çš„Rule,è·¯å¾„è¶Šé•¿è¯´æ˜ä¼˜å…ˆçº§è¶Šé«˜
+                    if (item == null || item.assetPath.Length < tempItem.assetPath.Length)
+                    {
+                        item = tempItem;
+                    }
+                }
+            }
+
+            return item;
+        }
+
+        /// <summary>
+        /// è·å–BundleName
+        /// </summary>
+        /// <param name="assetUrl">èµ„æºè·¯å¾„</param>
+        /// <param name="resourceType">èµ„æºç±»å‹</param>
+        /// <returns>BundleName</returns>
         public string GetBundleName(string assetUrl, EResourceType resourceType)
         {
-            //TODO
-            return "";
+            BuildItem buildItem = GetBuildItem(assetUrl);
+
+            if (buildItem == null)
+            {
+                return null;
+            }
+
+            string name;
+
+            //ä¾èµ–ç±»å‹ä¸€å®šè¦åŒ¹é…åç¼€
+            if (buildItem.resourceType == EResourceType.Dependency)
+            {
+                string extension = Path.GetExtension(assetUrl).ToLower();
+                bool exist = false;
+                for (int i = 0; i < buildItem.suffixes.Count; i++)
+                {
+                    if (buildItem.suffixes[i] == extension)
+                    {
+                        exist = true;
+                    }
+                }
+
+                if (!exist)
+                {
+                    return null;
+                }
+            }
+
+            switch (buildItem.bundleType)
+            {
+                case EBundleType.All:
+                    name = buildItem.assetPath;
+                    if (buildItem.assetPath[buildItem.assetPath.Length - 1] == '/')
+                        name = buildItem.assetPath.Substring(0, buildItem.assetPath.Length - 1);
+                    name = $"{name}{Builder.BUNDLE_SUFFIX}".ToLowerInvariant();
+                    break;
+                case EBundleType.Directory:
+                    name = $"{assetUrl.Substring(0, assetUrl.LastIndexOf('/'))}{Builder.BUNDLE_SUFFIX}".ToLowerInvariant();
+                    break;
+                case EBundleType.File:
+                    name = $"{assetUrl}{Builder.BUNDLE_SUFFIX}".ToLowerInvariant();
+                    break;
+                default:
+                    throw new Exception($"æ— æ³•è·å–{assetUrl}çš„BundleName");
+            }
+
+            buildItem.Count += 1;
+
+            return name;
+        }
+
+        public static BuildSetting Create(string file)
+        {
+            BuildSetting buildSetting = new BuildSetting();
+            XmlUtility.Save(file, buildSetting);
+            return buildSetting;
+        }
+
+        public void Save()
+        {
+            XmlUtility.Save(Builder.BuildSettingPath, this);
+        }
+
+        /// <summary>
+        /// åˆ é™¤
+        /// </summary>
+        /// <param name="index"></param>
+        public void RemoveRule(int index)
+        {
+            if (items == null || items.Count <= index)
+                return;
+
+            items.RemoveAt(index);
+
+            Save();
+        }
+
+
+        /// <summary>
+        /// æ·»åŠ è§„åˆ™
+        /// </summary>
+        /// <param name="path">è·¯å¾„</param>
+        /// <param name="rule">è§„åˆ™</param>
+        /// <param name="suffix">åç¼€</param>
+        public void AddRule(string path, EBundleType rule, SearchOption searchOption)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogError("æ·»åŠ çš„è§„åˆ™è·¯å¾„ä¸èƒ½ä¸ºç©º!!");
+                return;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Debug.LogError($"ä¸å­˜åœ¨è·¯å¾„:{path}!!");
+                return;
+            }
+
+            if (GetBuildItem(path) != null)
+            {
+                Debug.LogError($"è¯¥è§„åˆ™å·²ç»å­˜åœ¨:{path}!!");
+                return;
+            }
+
+            BuildItem ruleEntry = new BuildItem { assetPath = path, bundleType = rule };
+            items.Add(ruleEntry);
+
+            Save();
+        }
+
+        public void AddRule(BuildItem item)
+        {
+            if (string.IsNullOrEmpty(item.assetPath))
+            {
+                Debug.LogError("æ·»åŠ çš„è§„åˆ™è·¯å¾„ä¸èƒ½ä¸ºç©º!!");
+                return;
+            }
+
+            if (!Directory.Exists(item.assetPath))
+            {
+                Debug.LogError($"ä¸å­˜åœ¨è·¯å¾„:{item.assetPath}!!");
+                return;
+            }
+
+            if (GetBuildItem(item.assetPath) != null)
+            {
+                Debug.LogError($"è¯¥è§„åˆ™å·²ç»å­˜åœ¨:{item.assetPath}!!");
+                return;
+            }
+
+            items.Add(item);
+            Save();
+        }
+
+        public void AddSuffix(string suffix)
+        {
+            if (suffixList.Contains(suffix))
+            {
+                Debug.LogError("é‡å¤åç¼€");
+                return;
+            }
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                BuildItem item = items[i];
+            }
+
+            suffixList.Add(suffix);
+            Save();
+        }
+
+        public void RemoveSuffix(int index)
+        {
+            if (suffixList.Count <= index)
+                return;
+
+            suffixList.RemoveAt(index);
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                BuildItem item = items[i];
+
+                item.suffix = string.Empty;
+
+                for (int idx = 0; idx < suffixList.Count; idx++)
+                {
+                    if (!string.IsNullOrEmpty(item.suffix))
+                        item.suffix = item.suffix + "|" + suffixList[idx];
+                    else
+                        item.suffix = item.suffix + suffixList[idx];
+                }
+            }
         }
     }
-
 }

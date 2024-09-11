@@ -1,5 +1,7 @@
 using JKFrame;
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
+#endif
 using System;
 using System.Collections;
 using System.Collections.Generic;
