@@ -16,6 +16,10 @@ namespace UIFramework
 
         void Hide(bool animate = true);
 
+
+        Action<IScreenController> InTransitionFinished { get; set; }
+        Action<IScreenController> OutTransitionFinished { get; set; }
+        Action<IScreenController> CloseRequest { get; set; }
         Action<IScreenController> ScreenDestroyed { get; set; }
     }
 

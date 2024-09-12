@@ -1,4 +1,5 @@
-﻿using UIFramework.Window;
+﻿using UIFramework.Panel;
+using UIFramework.Window;
 
 namespace UIFramework
 {
@@ -8,6 +9,14 @@ namespace UIFramework
     public interface IScreenProperties
     {
 
+    }
+
+    /// <summary>
+    /// 面板属性的接口
+    /// </summary>
+    public interface IPanelProperties : IScreenProperties
+    {
+        PanelPriority Priority { get; set; }
     }
 
     /// <summary>

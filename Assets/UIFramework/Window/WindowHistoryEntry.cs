@@ -19,5 +19,10 @@ namespace UIFramework.Window
             Screen = screen;
             Properties = properties;
         }
+
+        public void Show()
+        {
+            Screen.Show(Properties);
+        }
     }
 }

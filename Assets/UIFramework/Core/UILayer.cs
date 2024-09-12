@@ -72,7 +72,7 @@ namespace UIFramework
         /// </summary>
         /// <param name="screenID">界面id</param>
         /// <param name="controller">被取消的界面controller</param>
-        private void UnregisterScreen(string screenID, TScreen controller)
+        public void UnregisterScreen(string screenID, TScreen controller)
         {
             if (registeredScreens.ContainsKey(screenID))
             {
@@ -107,12 +107,12 @@ namespace UIFramework
         /// <typeparam name="TProps">属性类型</typeparam>
         /// <param name="screenID">界面ID</param>
         /// <param name="properties">属性参数</param>
-        public void ShowScreenByID<TProps>(string screenID,TProps properties) where TProps : IScreenProperties
+        public void ShowScreenByID<TProps>(string screenID, TProps properties) where TProps : IScreenProperties
         {
             TScreen ctl;
             if (registeredScreens.TryGetValue(screenID, out ctl))
             {
-                ShowScreen(ctl,properties);
+                ShowScreen(ctl, properties);
             }
             else
             {

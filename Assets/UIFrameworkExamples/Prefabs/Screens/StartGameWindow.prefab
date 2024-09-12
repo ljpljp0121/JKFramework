@@ -31,7 +31,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8294762724504813984}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -111,7 +110,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8749973151181950828}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
@@ -193,7 +191,6 @@ RectTransform:
   m_Children:
   - {fileID: 2527882790160811346}
   m_Father: {fileID: 8749973151181950828}
-  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -282,8 +279,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 6812951680411409494}
-        m_TargetAssemblyTypeName: 
+      - m_Target: {fileID: 680250007758234033}
+        m_TargetAssemblyTypeName: StartWindowController, Assembly-CSharp
         m_MethodName: UI_Start
         m_Mode: 1
         m_Arguments:
@@ -305,9 +302,9 @@ GameObject:
   - component: {fileID: 8749973151181950828}
   - component: {fileID: 7451711150524851965}
   - component: {fileID: 8614912029994708458}
-  - component: {fileID: 6812951680411409494}
-  - component: {fileID: 7772959813813847272}
-  - component: {fileID: 3947463569980931984}
+  - component: {fileID: 680250007758234033}
+  - component: {fileID: 4235427113086151430}
+  - component: {fileID: 8047046548366971166}
   m_Layer: 5
   m_Name: StartGameWindow
   m_TagString: Untagged
@@ -330,7 +327,6 @@ RectTransform:
   - {fileID: 3850208934447900450}
   - {fileID: 8294762724504813984}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -375,7 +371,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &6812951680411409494
+--- !u!114 &680250007758234033
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -384,16 +380,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 7617306793594988998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18cc5984687341548acdac6ef7ea7e6b, type: 3}
+  m_Script: {fileID: 11500000, guid: aa9d7627c5c6d054298045aa5c0d4aad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animIn: {fileID: 7772959813813847272}
-  animOut: {fileID: 3947463569980931984}
+  animIn: {fileID: 4235427113086151430}
+  animOut: {fileID: 8047046548366971166}
   properties:
     hideOnForegroundLost: 1
     windowQueuePriority: 0
     isPopup: 0
---- !u!114 &7772959813813847272
+--- !u!114 &4235427113086151430
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -402,12 +398,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 7617306793594988998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f9739af8e894b7b8db28faf4bb2114d, type: 3}
+  m_Script: {fileID: 11500000, guid: d7b50a5bc591ab54b8b31fa223866074, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   fadeDuration: 1
   fadeOut: 0
---- !u!114 &3947463569980931984
+--- !u!114 &8047046548366971166
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -416,7 +412,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 7617306793594988998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f9739af8e894b7b8db28faf4bb2114d, type: 3}
+  m_Script: {fileID: 11500000, guid: d7b50a5bc591ab54b8b31fa223866074, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   fadeDuration: 0.25
