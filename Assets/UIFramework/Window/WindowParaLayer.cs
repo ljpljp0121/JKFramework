@@ -1,48 +1,36 @@
-﻿using System;
+﻿using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 
-namespace UIFramework.Window
-{
+namespace UIFramework {
     /// <summary>
-    /// 这是一个"辅助"层级，以便显示优先级更高的窗口
-    /// 默认情况下，它包含任何标记为弹出窗口的窗口，它由WindowUILayer控制
+    /// 这是一个“辅助”层级，以便显示优先级更高的窗口。
+    /// 默认情况下，它包含任何标记为弹出窗口的窗口。它由 WindowUILayer 控制
     /// </summary>
-    public class WindowParaLayer : MonoBehaviour
-    {
-        [SerializeField]
+    public class WindowParaLayer : MonoBehaviour {
+        [SerializeField] 
         private GameObject darkenBgObject = null;
 
         private List<GameObject> containedScreens = new List<GameObject>();
-
-        public void AddScreen(Transform screenRectTransform)
-        {
+        
+        public void AddScreen(Transform screenRectTransform) {
             screenRectTransform.SetParent(transform, false);
             containedScreens.Add(screenRectTransform.gameObject);
         }
 
-        public void RefreshDarken()
-        {
-            for (int i = 0; i < containedScreens.Count; i++)
-            {
-                if (containedScreens[i] != null)
-                {
-                    if (containedScreens[i].activeSelf)
-                    {
-                        darkenBgObject?.SetActive(true);
+        public void RefreshDarken() {
+            for (int i = 0; i < containedScreens.Count; i++) {
+                if (containedScreens[i] != null) {
+                    if (containedScreens[i].activeSelf) {
+                        darkenBgObject.SetActive(true);
                         return;
                     }
                 }
             }
 
-            darkenBgObject?.SetActive(false);
+            darkenBgObject.SetActive(false);
         }
 
-        public void DarkenBG()
-        {
+        public void DarkenBG() {
             darkenBgObject.SetActive(true);
             darkenBgObject.transform.SetAsLastSibling();
         }

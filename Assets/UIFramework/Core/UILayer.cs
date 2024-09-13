@@ -1,186 +1,156 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+ï»¿using System;
 using UnityEngine;
-
-namespace UIFramework
-{
+using System.Collections.Generic;
+    
+namespace UIFramework {
     /// <summary>
-    /// »ù´¡µÄUI Layer²ã
+    /// åŸºç¡€çš„UI Layerå±‚
     /// </summary>
-    public abstract class UILayer<TScreen> : MonoBehaviour where TScreen : IScreenController
-    {
+    public abstract class UILayer<TScreen> : MonoBehaviour where TScreen : IScreenController {
         protected Dictionary<string, TScreen> registeredScreens;
-
+        
         /// <summary>
-        /// ÏÔÊ¾½çÃæ
+        /// æ˜¾ç¤ºç•Œé¢
         /// </summary>
-        /// <param name="screen">½çÃæÀàĞÍ²ÎÊı</param>
+        /// <param name="screen">ç•Œé¢ç±»å‹å‚æ•°</param>
         public abstract void ShowScreen(TScreen screen);
 
         /// <summary>
-        /// ÏÔÊ¾Ò»¸ö½çÃæ´ø²ÎÊı
+        /// æ˜¾ç¤ºä¸€ä¸ªç•Œé¢ï¼Œå¸¦ä¸€äº›å‚æ•°
         /// </summary>
-        /// <typeparam name="TProps">ÊôĞÔÀàĞÍ</typeparam>
-        /// <param name="screen">½çÃæÀàĞÍ²ÎÊı</param>
-        /// <param name="props">ÊôĞÔ²ÎÊı</param>
-        public abstract void ShowScreen<TProps>(TScreen screen, TProps props) where TProps : IScreenProperties;
+        /// <param name="screen">ç•Œé¢ç±»å‹å‚æ•°</param>
+        /// <param name="properties">å±æ€§å‚æ•°</param>
+        /// <typeparam name="TProps">å±æ€§ç±»å‹</typeparam>
+        public abstract void ShowScreen<TProps>(TScreen screen, TProps properties) where TProps : IScreenProperties;
 
         /// <summary>
-        /// Òş²Ø½çÃæ
+        /// éšè—ç•Œé¢
         /// </summary>
-        /// <param name="screen">½çÃæÀàĞÍ²ÎÊı</param>
+        /// <param name="screen">ç•Œé¢ç±»å‹å‚æ•°</param>
         public abstract void HideScreen(TScreen screen);
 
         /// <summary>
-        /// ³õÊ¼»¯Layer²ã
+        /// åˆå§‹åŒ–Layerå±‚
         /// </summary>
-        public virtual void Initialize()
-        {
+        public virtual void Initialize() {
             registeredScreens = new Dictionary<string, TScreen>();
         }
 
         /// <summary>
-        /// ´«½øÀ´µÄ½çÃæµ±×÷²ãµÄ×Ó½Úµã
+        /// ä¼ è¿›æ¥çš„ç•Œé¢å½“åšå±‚çš„å­èŠ‚ç‚¹
         /// </summary>
-        /// <param name="controller">½çÃæµÄcontroller</param>
-        /// <param name="screenTransform">½çÃæ½Úµã</param>
-        public virtual void ReparentScreen(IScreenController controller, Transform screenTransform)
-        {
+        /// <param name="controller">ç•Œé¢çš„controller</param>
+        /// <param name="screenTransform">ç•Œé¢èŠ‚ç‚¹</param>
+        public virtual void ReparentScreen(IScreenController controller, Transform screenTransform) {
             screenTransform.SetParent(transform, false);
         }
 
         /// <summary>
-        /// ×¢²á½çÃæµÄcontroller´øÉÏÃ÷È·µÄ½çÃæID
+        /// æ³¨å†Œç•Œé¢çš„controllerå¸¦ä¸Šæ˜ç¡®çš„ç•Œé¢id
         /// </summary>
-        /// <param name="screenID">½çÃæID</param>
-        /// <param name="controller">½çÃæcontroller</param>
-        public void RegisterScreen(string screenID, TScreen controller)
-        {
-            if (!registeredScreens.ContainsKey(screenID))
-            {
-                ProcessScreenRegister(screenID, controller);
+        /// <param name="screenId">ç•Œé¢id</param>
+        /// <param name="controller">ç•Œé¢controller</param>
+        public void RegisterScreen(string screenId, TScreen controller) {
+            if (!registeredScreens.ContainsKey(screenId)) {
+                ProcessScreenRegister(screenId, controller);
             }
-            else
-            {
-                Debug.LogError("[AUILayerController] Screen controller already registered for id:" + screenID);
+            else {
+                Debug.LogError("[AUILayerController] Screen controller already registered for id: " + screenId);
             }
         }
 
         /// <summary>
-        /// ¸ù¾İIDÈ¡Ïû×¢²á½çÃæµÄcontroller
+        /// æ ¹æ®idå–æ¶ˆæ³¨å†Œç•Œé¢çš„controller
         /// </summary>
-        /// <param name="screenID">½çÃæid</param>
-        /// <param name="controller">±»È¡ÏûµÄ½çÃæcontroller</param>
-        public void UnregisterScreen(string screenID, TScreen controller)
-        {
-            if (registeredScreens.ContainsKey(screenID))
-            {
-                ProcessScreenUnRegister(screenID, controller);
+        /// <param name="screenId">ç•Œé¢id</param>
+        /// <param name="controller">è¢«å–æ¶ˆçš„ç•Œé¢controller</param>
+        public void UnregisterScreen(string screenId, TScreen controller) {
+            if (registeredScreens.ContainsKey(screenId)) {
+                ProcessScreenUnregister(screenId, controller);
             }
-            else
-            {
-                Debug.LogError("[AUILayerController] Screen controller not registered for id:" + screenID);
+            else {
+                Debug.LogError("[AUILayerController] Screen controller not registered for id: " + screenId);
             }
         }
 
         /// <summary>
-        /// ¸ù¾İIDÏÔÊ¾½çÃæ
+        /// æ ¹æ®idå»æ‰¾ç•Œé¢çš„controller,å¹¶ä¸”æ˜¾ç¤ºå‡ºæ¥
         /// </summary>
-        /// <param name="screenID">½çÃæID</param>
-        public void ShowScreenByID(string screenID)
-        {
+        /// <param name="screenId">ç•Œé¢Id</param>
+        public void ShowScreenById(string screenId) {
             TScreen ctl;
-            if (registeredScreens.TryGetValue(screenID, out ctl))
-            {
+            if (registeredScreens.TryGetValue(screenId, out ctl)) {
                 ShowScreen(ctl);
             }
-            else
-            {
-                Debug.LogError("[AUILayerController] Screen  ID " + screenID + "not registered to this layer");
+            else {
+                Debug.LogError("[AUILayerController] Screen ID " + screenId + " not registered to this layer!");
             }
         }
 
         /// <summary>
-        /// ¸ù¾İIDÏÔÊ¾½çÃæ,´øÉÏ¾ßÌåµÄÊôĞÔ²ÎÊı
+        /// æ ¹æ®ç•Œé¢idæ˜¾ç¤ºå…·ä½“çš„controller,å¸¦ä¸Šå…·ä½“çš„å±æ€§å‚æ•°
         /// </summary>
-        /// <typeparam name="TProps">ÊôĞÔÀàĞÍ</typeparam>
-        /// <param name="screenID">½çÃæID</param>
-        /// <param name="properties">ÊôĞÔ²ÎÊı</param>
-        public void ShowScreenByID<TProps>(string screenID, TProps properties) where TProps : IScreenProperties
-        {
+        /// <param name="screenId">ç•Œé¢id</param>
+        /// <param name="properties">å±æ€§å‚æ•°</param>
+        /// <typeparam name="TProps">å±æ€§ç±»å‹</typeparam>
+        public void ShowScreenById<TProps>(string screenId, TProps properties) where TProps : IScreenProperties {
             TScreen ctl;
-            if (registeredScreens.TryGetValue(screenID, out ctl))
-            {
+            if (registeredScreens.TryGetValue(screenId, out ctl)) {
                 ShowScreen(ctl, properties);
             }
-            else
-            {
-                Debug.LogError("[AUILayerController] Screen  ID " + screenID + "not registered to this layer");
+            else {
+                Debug.LogError("[AUILayerController] Screen ID " + screenId + " not registered!");
             }
         }
 
         /// <summary>
-        /// ¸ù¾İIDÒş²Ø½çÃæ
+        /// æ ¹æ®idéšè—ç•Œé¢
         /// </summary>
-        /// <param name="screenID">½çÃæID</param>
-        public void HideScreenByID(string screenID)
-        {
+        /// <param name="screenId">ç•Œé¢id</param>
+        public void HideScreenById(string screenId) {
             TScreen ctl;
-            if (registeredScreens.TryGetValue(screenID, out ctl))
-            {
+            if (registeredScreens.TryGetValue(screenId, out ctl)) {
                 HideScreen(ctl);
             }
-            else
-            {
-                Debug.LogError("[AUILayerController] Screen  ID " + screenID + "not registered to this layer");
+            else {
+                Debug.LogError("[AUILayerController] Could not hide Screen ID " + screenId + " as it is not registered to this layer!");
             }
         }
 
         /// <summary>
-        /// ¸ù¾İID²é¿´ÊÇ·ñ×¢²á
+        /// æ ¹æ®idçœ‹æ˜¯å¦æ³¨å†Œäº†
         /// </summary>
-        /// <param name="screenID">½çÃæID</param>
-        /// <returns></returns>
-        public bool IsScreenRegistered(string screenID)
-        {
-            return registeredScreens.ContainsKey(screenID);
+        /// <param name="screenId">ç•Œé¢id</param>
+        public bool IsScreenRegistered(string screenId) {
+            return registeredScreens.ContainsKey(screenId);
         }
-
+        
         /// <summary>
-        /// Òş²ØËùÓĞ½çÃæ
+        /// éšè—æ‰€æœ‰ç•Œé¢
         /// </summary>
-        /// <param name="shouldAnimateWhenHiding">Òş²ØµÄÊ±ºòÊÇ·ñĞèÒª¶¯»­</param>
-        public virtual void HideAll(bool shouldAnimateWhenHiding = true)
-        {
-            foreach (var screen in registeredScreens)
-            {
+        /// <param name="shouldAnimateWhenHiding">éšè—çš„æ—¶å€™æ˜¯å¦éœ€è¦åŠ¨ç”»</param>
+        public virtual void HideAll(bool shouldAnimateWhenHiding = true) {
+            foreach (var screen in registeredScreens) {
                 screen.Value.Hide(shouldAnimateWhenHiding);
             }
         }
 
-        protected virtual void ProcessScreenRegister(string screenID, TScreen controller)
-        {
-            controller.ScreenID = screenID;
-            registeredScreens.Add(screenID, controller);
+        protected virtual void ProcessScreenRegister(string screenId, TScreen controller) {
+            controller.ScreenId = screenId;
+            registeredScreens.Add(screenId, controller);
             controller.ScreenDestroyed += OnScreenDestroyed;
         }
 
-        protected virtual void ProcessScreenUnRegister(string screenID, TScreen controller)
-        {
-            registeredScreens.Remove(screenID);
+        protected virtual void ProcessScreenUnregister(string screenId, TScreen controller) {
             controller.ScreenDestroyed -= OnScreenDestroyed;
+            registeredScreens.Remove(screenId);
         }
 
-        private void OnScreenDestroyed(IScreenController screen)
-        {
-            if (!string.IsNullOrEmpty(screen.ScreenID)
-                && registeredScreens.ContainsKey(screen.ScreenID))
-            {
-                UnregisterScreen(screen.ScreenID, (TScreen)screen);
+        private void OnScreenDestroyed(IScreenController screen) {
+            if (!string.IsNullOrEmpty(screen.ScreenId)
+                && registeredScreens.ContainsKey(screen.ScreenId)) {
+                UnregisterScreen(screen.ScreenId, (TScreen) screen);
             }
         }
-
-
     }
 }

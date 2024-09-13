@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using UnityEngine;
 
-namespace UIFramework.ViewAnimation
+namespace UIFramework
 {
     /// <summary>
-    /// 渐入动画，自己封装DoTween之类的都行
+    /// 渐入动画，同样愿意自己封装DoTween的也行
     /// </summary>
     public class FadeAni : AniComponent
     {
-        [SerializeField]
-        private float fadeDuration = 0.5f;
-        [SerializeField]
-        private bool fadeOut = false;
+        [SerializeField] private float fadeDuration = 0.5f;
+        [SerializeField] private bool fadeOut = false;
 
         private CanvasGroup canvasGroup;
         private float timer;
@@ -27,28 +21,22 @@ namespace UIFramework.ViewAnimation
 
         private bool shouldAnimate;
 
-
-        public override void Animate(Transform target, Action callWhenFinished)
-        {
-            if (currentAction != null)
-            {
+        public override void Animate(Transform target, Action callWhenFinished) {
+            if (currentAction != null) {
                 canvasGroup.alpha = endValue;
                 currentAction();
             }
 
             canvasGroup = target.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-            {
+            if (canvasGroup == null) {
                 canvasGroup = target.gameObject.AddComponent<CanvasGroup>();
             }
 
-            if (fadeOut)
-            {
+            if (fadeOut) {
                 startValue = 1f;
                 endValue = 0f;
             }
-            else
-            {
+            else {
                 startValue = 0f;
                 endValue = 1f;
             }
@@ -60,23 +48,18 @@ namespace UIFramework.ViewAnimation
             shouldAnimate = true;
         }
 
-        private void Update()
-        {
-            if (!shouldAnimate)
-            {
+        private void Update() {
+            if (!shouldAnimate) {
                 return;
             }
 
-            if (timer > 0f)
-            {
+            if (timer > 0f) {
                 timer -= Time.deltaTime;
                 canvasGroup.alpha = Mathf.Lerp(endValue, startValue, timer / fadeDuration);
             }
-            else
-            {
+            else {
                 canvasGroup.alpha = 1f;
-                if (currentAction != null)
-                {
+                if (currentAction != null) {
                     currentAction();
                 }
 

@@ -1,24 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using UnityEngine;
+using System;
 
-namespace UIFramework.ViewAnimation
-{
-    //public class AniComponent
-    //{
-        
-    //}
-
+namespace UIFramework {
     /// <summary>
     /// 界面动画组件
     /// </summary>
-    public abstract class AniComponent : MonoBehaviour
-    {
+    public abstract class AniComponent : MonoBehaviour {
         /// <summary>
-        /// 动画播放，当动画执行完调用CallWhenFinished
+        /// 动画播放，当动画执行完调用CallWhenFinished.
         /// </summary>
         public abstract void Animate(Transform target, Action callWhenFinished);
     }

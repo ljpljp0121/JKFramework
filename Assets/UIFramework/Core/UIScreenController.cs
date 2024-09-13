@@ -1,25 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using UIFramework.ViewAnimation;
+﻿using UnityEngine;
+using System;
 
-namespace UIFramework.Core
+namespace UIFramework
 {
     /// <summary>
-    /// UI界面的基类，窗口，面板都继承他，比如AWindowController,PanelController
+    /// UI界面的基类，窗口，面板这些都继承它，比如 AWindowController，PanelController
     /// </summary>
-    public abstract class UIScreenController<TProps> : MonoBehaviour, IScreenController where TProps : IScreenProperties
+    public abstract class UIScreenController<TProps> : MonoBehaviour, IScreenController
+        where TProps : IScreenProperties
     {
-        [Header("Screen Animations")]
-        [Tooltip("界面显示动画")]
+        [Header("Screen Animations")] 
+        [Tooltip("界面显示的动画")] 
         [SerializeField]
         private AniComponent animIn;
 
-        [Tooltip("界面隐藏动画")]
+        [Tooltip("界面隐藏的动画")] 
         [SerializeField]
         private AniComponent animOut;
 
@@ -29,9 +24,9 @@ namespace UIFramework.Core
         private TProps properties;
 
         /// <summary>
-        /// 界面ID，用字符串的形式保存
+        /// 界面id，用字符串的形式保存
         /// </summary>
-        public string ScreenID { get; set; }
+        public string ScreenId { get; set; }
 
         /// <summary>
         /// 动画组件，为了界面有统一的弹出效果
@@ -52,17 +47,12 @@ namespace UIFramework.Core
         }
 
         /// <summary>
-        /// 界面是否显示中
-        /// </summary>
-        public bool IsVisible { get; private set; }
-
-        /// <summary>
-        /// 弹出(渐入)动画完成之后回调
+        /// 弹出（渐入）动画完成之后回调
         /// </summary>
         public Action<IScreenController> InTransitionFinished { get; set; }
 
         /// <summary>
-        /// 关闭(渐隐)动画完成之后回调
+        /// 关闭（渐隐）动画完成之后回调
         /// </summary>
         public Action<IScreenController> OutTransitionFinished { get; set; }
 
@@ -75,6 +65,11 @@ namespace UIFramework.Core
         /// 界面销毁的回调
         /// </summary>
         public Action<IScreenController> ScreenDestroyed { get; set; }
+
+        /// <summary>
+        /// 界面是否显示中
+        /// </summary>
+        public bool IsVisible { get; private set; }
 
         /// <summary>
         /// 界面的属性参数
@@ -105,35 +100,31 @@ namespace UIFramework.Core
         }
 
         /// <summary>
-        /// 添加监听事件，Awake自动调用
+        /// 添加监听事件，Awake会自动调
         /// </summary>
         protected virtual void AddListeners()
         {
-
         }
 
         /// <summary>
-        /// 移除监听事件，OnDestroy自动调用
+        /// 移除监听事件，Destroy会自动调
         /// </summary>
         protected virtual void RemoveListeners()
         {
-
         }
 
         /// <summary>
-        /// 属性参数设置到界面的时候出发，在SetProperties之后出发，比较安全取到值
+        /// 属性参数设置到界面的时候触发，在SetProperties之后触发，比较安全的能取到值
         /// </summary>
         protected virtual void OnPropertiesSet()
         {
-
         }
 
         /// <summary>
-        /// 界面隐藏的时候出发，便于处理一些操作
+        /// 界面隐藏的时候触发，便于处理一些操作
         /// </summary>
         protected virtual void WhileHiding()
         {
-
         }
 
         /// <summary>
@@ -149,7 +140,6 @@ namespace UIFramework.Core
         /// </summary>
         protected virtual void HierarchyFixOnShow()
         {
-
         }
 
         /// <summary>
@@ -162,7 +152,7 @@ namespace UIFramework.Core
         }
 
         /// <summary>
-        /// 显示具体界面
+        /// 显示具体界面，带上属性参数
         /// </summary>
         public void Show(IScreenProperties props = null)
         {
@@ -170,11 +160,12 @@ namespace UIFramework.Core
             {
                 if (props is TProps)
                 {
-                    SetProperties((TProps)props);
+                    SetProperties((TProps) props);
                 }
                 else
                 {
-                    Debug.LogError("Properties passed have wrong type!");
+                    Debug.LogError("Properties passed have wrong type! (" + props.GetType() + " instead of " +
+                                   typeof(TProps) + ")");
                     return;
                 }
             }
@@ -199,7 +190,7 @@ namespace UIFramework.Core
         {
             if (caller == null)
             {
-                gameObject.SetActive(IsVisible);
+                gameObject.SetActive(isVisible);
                 if (callWhenFinished != null)
                 {
                     callWhenFinished();
@@ -207,7 +198,7 @@ namespace UIFramework.Core
             }
             else
             {
-                if (IsVisible && !gameObject.activeSelf)
+                if (isVisible && !gameObject.activeSelf)
                 {
                     gameObject.SetActive(true);
                 }

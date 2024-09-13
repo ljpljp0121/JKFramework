@@ -1,72 +1,57 @@
-using System;
+ï»¿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
-namespace UIFramework.Panel
-{
+namespace UIFramework {
     /// <summary>
-    /// Õâ¸öLayer²ãÊÇ¿ØÖÆÃæ°åµÄ
-    /// Ãæ°åÊÇ½çÃæµÄÒ»ÖÖ£¬Ã»ÓĞÀúÊ·¼ÇÂ¼£¬Ã»ÓĞ¶ÓÁĞ
-    /// ¾ÍÊÇ¼òµ¥µÄÏÔÊ¾ÔÚ½çÃæÖĞ
-    /// ±ÈÈçËµÌåÁ¦²Û£¬Ğ¡µØÍ¼ÕâÖÖ³£×¤µÄ
+    /// è¿™ä¸ªLayerå±‚æ˜¯æ§åˆ¶é¢æ¿çš„
+    /// é¢æ¿æ˜¯ç•Œé¢çš„ä¸€ç§ï¼Œæ²¡æœ‰å†å²è®°å½•ï¼Œæ²¡æœ‰é˜Ÿåˆ—,
+    /// å°±æ˜¯ç®€å•çš„æ˜¾ç¤ºåœ¨ç•Œé¢ä¸­
+    /// æ¯”å¦‚è¯´ä½“åŠ›æ§½ï¼Œå°åœ°å›¾è¿™ç§å¸¸é©»çš„
     /// </summary>
-    public class PanelUILayer : UILayer<IPanelController>
-    {
+    public class PanelUILayer : UILayer<IPanelController> {
         [SerializeField]
-        [Tooltip("ÓÅÏÈ¼¶²¢ĞĞ²ãµÄÉèÖÃ,×¢²áµ½´Ë²ãµÄÃæ°å½«¸ù¾İÆäÓÅÏÈ¼¶ÖØĞÂ¹éÊôµ½²»Í¬µÄ²¢ĞĞ²ã¶ÔÏó")]
+        [Tooltip("ä¼˜å…ˆçº§å¹¶è¡Œå±‚çš„è®¾ç½®ã€‚æ³¨å†Œåˆ°æ­¤å±‚çš„é¢æ¿å°†æ ¹æ®å…¶ä¼˜å…ˆçº§é‡æ–°å½’å±åˆ°ä¸åŒçš„å¹¶è¡Œå±‚å¯¹è±¡.")]
         private PanelPriorityLayerList priorityLayers = null;
 
+        public override void ReparentScreen(IScreenController controller, Transform screenTransform) {
+            var ctl = controller as IPanelController;
+            if (ctl != null) {
+                ReparentToParaLayer(ctl.Priority, screenTransform);
+            }
+            else {
+                base.ReparentScreen(controller, screenTransform);
+            }
+        }
 
-        public override void ShowScreen(IPanelController screen)
-        {
+        public override void ShowScreen(IPanelController screen) {
             screen.Show();
         }
 
-        public override void ShowScreen<TProps>(IPanelController screen, TProps properties)
-        {
+        public override void ShowScreen<TProps>(IPanelController screen, TProps properties) {
             screen.Show(properties);
         }
 
-        public override void HideScreen(IPanelController screen)
-        {
+        public override void HideScreen(IPanelController screen) {
             screen.Hide();
         }
 
-        public bool IsPanelVisible(string panelID)
-        {
+        public bool IsPanelVisible(string panelId) {
             IPanelController panel;
-            if (registeredScreens.TryGetValue(panelID, out panel))
-            {
+            if (registeredScreens.TryGetValue(panelId, out panel)) {
                 return panel.IsVisible;
             }
 
             return false;
         }
-
-        public override void ReparentScreen(IScreenController controller, Transform screenTransform)
-        {
-            var ctl = controller as IPanelController;
-            if (ctl != null)
-            {
-                ReparentToParaLayer(ctl.Proiority, screenTransform);
-            }
-            else
-            {
-                base.ReparentScreen(controller, screenTransform);
-            }
-        }
-
-        private void ReparentToParaLayer(PanelPriority proiority, Transform screenTransform)
-        {
+        
+        private void ReparentToParaLayer(PanelPriority priority, Transform screenTransform) {
             Transform trans;
-            if (!priorityLayers.ParaLayerLookup.TryGetValue(proiority, out trans))
-            {
+            if (!priorityLayers.ParaLayerLookup.TryGetValue(priority, out trans)) {
                 trans = transform;
             }
-
+            
             screenTransform.SetParent(trans, false);
         }
     }
-
 }
